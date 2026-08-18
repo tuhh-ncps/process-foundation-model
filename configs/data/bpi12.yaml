@@ -1,0 +1,12 @@
+# BPI12-only backbone, shared BPI12+BPI17 vocabulary (comparable downstream).
+vocab_logs:
+  - path: ${paths.data_dir}/BPI12.xes
+  - path: ${paths.data_dir}/BPI17.xes
+    max_traces: 5000
+train_logs:
+  - path: ${paths.data_dir}/BPI12.xes
+strip_to_control_flow: true
+min_trace_len: 2
+split: [0.70, 0.15, 0.15]
+batch_size: 96              # PER-GPU under DDP (global = batch_size x world_size; scale LR)
+length_bucketing: true      # DDP-sharded bucketing (keeps padding tight; essential if uncapped)

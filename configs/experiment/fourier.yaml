@@ -1,0 +1,5 @@
+# @package _global_
+# V3: gated MLP + Fourier features.
+defaults:
+  - override /model: transformer_small_fourier
+  - override /ar: default

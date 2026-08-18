@@ -1,0 +1,23 @@
+# Frozen-probe label-efficiency across tasks/backbones. Fill `backbones` with run ids from a
+# completed pretraining run (dir names under ${output_dir}/backbones/), plus "random".
+#   python train.py task=evaluate evaluate=label_efficiency \
+#       evaluate.backbones.ar=<run_id> evaluate.backbones.random=random
+backbones:
+  ar: REPLACE_WITH_BACKBONE_RUN_ID
+  random: random
+eval_dataset: BPI12        # downstream dataset (BPI12 | BPI17) — MAY differ from the backbone's
+eval_log:
+  path: ${paths.data_dir}/${evaluate.eval_dataset}.xes
+strip_to_control_flow: true
+tasks: [next_activity, next_time, remaining_time, outcome]
+label_sizes: [0, 10, 30, 100, 300, 1000, 5000, null]   # 0 = zero-shot; null = all (matches mimic)
+seeds: [0, 1]
+probe: {max_epochs: 15, lr: 1.0e-3, batch_size: 128, num_workers: 0, head_hidden: 128, early_stop_patience: 3}  # head_hidden>0: MLP head for time probes (0=linear)
+pooling: trace            # case-head pooling for the `outcome` task: trace|mean|last|max|attention
+outcome: {labeler: bpi12_application_outcome}
+split: [0.70, 0.15, 0.15]
+warm_start: true          # 0-label point uses the backbone's pretext heads (a real zero-shot)
+length_bucketing: true
+x_scale: log              # label-efficiency x-axis by ACTUAL #training cases: log|linear
+model: ${model}            # architecture for the "random" baseline
+name: label-efficiency

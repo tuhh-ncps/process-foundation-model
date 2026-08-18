@@ -1,0 +1,34 @@
+# Data and run outputs live inside the project (self-contained) but are NOT tracked by git —
+# they're large and reproducible. The folder still carries them on disk when you move/copy it.
+# Anchored to the repo root (leading /) so they DON'T match src/pm_foundation/data/ etc.
+/data/
+/outputs/
+/outputs_*/
+/submitit/
+/logs/
+*.sif
+
+# Not published to GitHub (kept on disk locally, not in the repo):
+#   docs/  = paper artifacts (figures, LaTeX, mockups) — not the training code
+#   slurm/ = cluster-specific sbatch scripts (carry account/partition/user specifics)
+/docs/
+/slurm/
+
+# Python / tooling
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+
+.env
+.env.*
+
+**/.codegraph/

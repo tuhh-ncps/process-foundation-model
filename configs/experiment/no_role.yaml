@@ -1,0 +1,10 @@
+# @package _global_
+# ABLATION of `experiment=role`: the SAME backbone, objectives, and dimensions with the role
+# channel turned OFF (transformer_small = transformer_small_role minus role_dim/role_layers).
+# Removing the role space also removes the open-vocab matching head (falls back to a fixed
+# next-activity head over the training vocabulary). Train a matched pair — `role` vs `no_role` —
+# on one dataset with identical settings to isolate the role-space contribution, then evaluate
+# cross-domain: the difference is attributable ONLY to the vocabulary-free role space.
+defaults:
+  - override /model: transformer_small
+  - override /ar: default

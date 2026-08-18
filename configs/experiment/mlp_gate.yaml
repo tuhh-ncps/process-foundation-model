@@ -1,0 +1,5 @@
+# @package _global_
+# V2: gated MLP additive fusion.
+defaults:
+  - override /model: transformer_small_mlp_gate
+  - override /ar: default

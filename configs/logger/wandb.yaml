@@ -1,0 +1,9 @@
+# Weights & Biases logging. On the air-gapped cluster W&B runs OFFLINE (compute nodes have no
+# internet) — runs are written to ${output_dir}/wandb/ and synced later from the login node:
+#     make sync          (or: wandb sync outputs/wandb/offline-run-*)
+enabled: true
+mode: offline            # offline (cluster) | online (if the node has internet)
+project: pm-foundation
+entity: null             # your W&B team/user; null = your default entity
+group: ${name}           # groups the run (and its DDP ranks) in the W&B UI
+tags: []

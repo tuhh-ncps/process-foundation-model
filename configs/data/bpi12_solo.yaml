@@ -1,0 +1,13 @@
+# BPI12 with a BPI12-ONLY vocabulary (unlike bpi12.yaml, which fits vocab over BPI12+BPI17).
+# Used for the clean vocab-free transfer test: a backbone trained here has NO BPI17 activities in
+# its embedding table, so evaluating zero-shot on BPI17 makes every BPI17 activity UNK (dead ID
+# channel) — isolating the role encoder as the ONLY thing that can transfer.
+vocab_logs:
+  - path: ${paths.data_dir}/BPI12.xes
+train_logs:
+  - path: ${paths.data_dir}/BPI12.xes
+strip_to_control_flow: true
+min_trace_len: 2
+split: [0.70, 0.15, 0.15]
+batch_size: 96
+length_bucketing: true

@@ -1,0 +1,20 @@
+# MIMIC-IV Story A, capped at 10000 admissions — for the "seen data" continue-pretraining
+# (Q3/Q4), which adapts the multi-domain FM onto MIMIC before probing. Same log as
+# mimic_transfers.yaml; max_traces caps to the first 10000 case_ids (by hadm_id order), the
+# SAME subset the eval reads with evaluate.eval_log.max_traces=10000, so the temporal 70/15/15
+# split keeps pretraining-train and eval-test disjoint (leak-free). Must match the eval cap.
+#
+# Build the CSV first (on the cluster) — see scripts/build_mimic_log.py.
+vocab_logs:
+  - path: ${paths.data_dir}/mimic_transfers.csv
+    format: csv
+    max_traces: 10000
+train_logs:
+  - path: ${paths.data_dir}/mimic_transfers.csv
+    format: csv
+    max_traces: 10000
+strip_to_control_flow: true
+min_trace_len: 2
+split: [0.70, 0.15, 0.15]
+batch_size: 96
+length_bucketing: true

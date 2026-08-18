@@ -1,0 +1,5 @@
+# @package _global_
+# RoPE + Time2Vec + gated temporal bias.
+defaults:
+  - override /model: transformer_small_rope_time2vec_tbias_gate
+  - override /ar: default

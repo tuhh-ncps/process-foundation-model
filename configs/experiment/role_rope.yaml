@@ -1,0 +1,8 @@
+# @package _global_
+# Role channel + RoPE positions + deeper (3-layer) role GIN.
+# Pair with the time-heavy AR pretext weights via EXTRA (outcome head OFF; boost temporal + JEPA):
+#   ar.outcome_weight=0 ar.time_weight=1.0 ar.remaining_time_weight=1.0 ar.jepa_weight=1.0
+# Uses the fixed per-component role normalization (roles.py). Iteration on experiment=role.
+defaults:
+  - override /model: transformer_small_role_rope
+  - override /ar: default

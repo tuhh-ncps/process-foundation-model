@@ -1,0 +1,18 @@
+# Multi-dataset training: train ONE backbone on several corpora at once.
+# Pick the datasets on the CLI as a comma list, e.g.
+#   make submit_oland EXPERIMENT=role DATASET=mimic_transfers,bpi12
+# The sbatch turns DATASET=a,b into  `data=multi ++data.datasets=[a,b]`.
+#
+# Each name refers to an existing configs/data/<name>.yaml (single source of truth for its
+# path/format). train.py concatenates every named log's specs, and — via the shared `split`
+# below — each dataset contributes only its 70% TRAIN split to the backbone (leak-free: the
+# 15% val / 15% test of every corpus stay held out). Vocabulary + feature spec are fit over
+# the union, so the resulting backbone is directly comparable to a single-dataset one.
+datasets: []                 # set on the CLI, e.g. [mimic_transfers, bpi12, bpi17]
+vocab_logs: []               # composed in train.py from `datasets` (leave empty here)
+train_logs: []               # composed in train.py from `datasets` (leave empty here)
+strip_to_control_flow: true
+min_trace_len: 2
+split: [0.70, 0.15, 0.15]    # 70% train of EACH dataset feeds the backbone
+batch_size: 96
+length_bucketing: true       # variable-length traces across corpora → keep padding tight

@@ -1,0 +1,12 @@
+# BPI Challenge 2018 — agricultural subsidy (CAP) payments (finance / public admin).
+# Largest real log in the corpus (~43.8k cases, 2.5M events, 41 activities). Own vocab.
+# See docs/dataset_portfolio.md.
+vocab_logs:
+  - path: ${paths.data_dir}/BPI18.xes
+train_logs:
+  - path: ${paths.data_dir}/BPI18.xes
+strip_to_control_flow: true
+min_trace_len: 2
+split: [0.70, 0.15, 0.15]
+batch_size: 96
+length_bucketing: true

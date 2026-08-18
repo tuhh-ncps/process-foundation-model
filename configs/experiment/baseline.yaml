@@ -1,0 +1,5 @@
+# @package _global_
+# Baseline: concat fusion, learned positions.
+defaults:
+  - override /model: transformer_small
+  - override /ar: default

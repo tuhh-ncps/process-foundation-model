@@ -1,0 +1,114 @@
+[project]
+name = "pm-foundation"
+version = "0.0.1"
+description = "A self-supervised foundation model for process mining event logs, with pluggable task heads."
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = { text = "BSD-3-Clause" }
+authors = [{ name = "Trinh Tran", email = "trinh.tran@tuhh.de" }]
+keywords = [
+    "process-mining",
+    "foundation-model",
+    "self-supervised-learning",
+    "event-logs",
+    "representation-learning",
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "License :: OSI Approved :: BSD License",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# Core runtime dependencies. Kept intentionally lean; optional extras below.
+dependencies = [
+    "torch>=2.2",
+    "lightning>=2.2",
+    "torchmetrics>=1.3",
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "polars>=1.0",
+    "pm4py>=2.7",            # XES parsing and process-mining utilities
+    "hydra-core>=1.3",      # hierarchical experiment configuration
+    "omegaconf>=2.3",
+    "pydantic>=2.6",        # validated data schemas / config models
+    "rich>=13.7",           # readable console logging
+]
+
+[project.optional-dependencies]
+# Experiment tracking / visualisation (optional at runtime).
+tracking = ["wandb>=0.16", "tensorboard>=2.16"]
+# Submit the SAME Hydra run to Slurm from Python (no hand-written sbatch) via submitit.
+hpc = ["hydra-submitit-launcher>=1.2"]
+# Notebook and exploratory analysis tooling.
+notebook = ["jupyterlab>=4.1", "matplotlib>=3.8", "seaborn>=0.13"]
+
+# Development tooling (PEP 735 dependency group; installed by default via uv).
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.4",
+    "mypy>=1.10",
+    "pre-commit>=3.7",
+]
+
+[project.scripts]
+# Single CLI entry point dispatching to pretraining / finetuning / evaluation.
+pmf = "pm_foundation.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/tuhh-ncps/process-foundation-model"
+Repository = "https://github.com/tuhh-ncps/process-foundation-model"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pm_foundation"]
+
+# ---------------------------------------------------------------------------
+# Tooling configuration
+# ---------------------------------------------------------------------------
+[tool.uv]
+# Dev dependencies installed by default in the working environment.
+default-groups = ["dev"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
+ignore = [
+    "E501",    # line length handled by formatter
+    "N812",    # `import lightning as L` is Lightning's documented convention
+    "N806",    # single-letter tensor/math locals (L, N, X, ...) are intentional ML notation
+    "RUF001",  # Greek/math symbols (α, β, ×, ≤) in strings are deliberate notation
+    "RUF003",  # ... and likewise in comments
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pm_foundation"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+plugins = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -q --strict-markers"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "gpu: marks tests that require a GPU",
+]
+
+[tool.coverage.run]
+source = ["pm_foundation"]
+branch = true

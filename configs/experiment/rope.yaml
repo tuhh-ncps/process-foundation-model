@@ -1,0 +1,5 @@
+# @package _global_
+# RoPE positions, uncapped (baseline input).
+defaults:
+  - override /model: transformer_small_rope
+  - override /ar: default

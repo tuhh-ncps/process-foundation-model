@@ -1,0 +1,12 @@
+# Sepsis Cases — hospital sepsis patient pathway (~1050 cases): ER registration/triage -> lab tests
+# (Leucocytes/CRP/LacticAcid) -> IV antibiotics/liquid -> admission (NC/IC) -> release (A-E)/return.
+# Medical like MIMIC but a DIFFERENT process; a good held-out / pretraining domain.
+vocab_logs:
+  - path: ${paths.data_dir}/SepsisCases_Event_Log.xes
+train_logs:
+  - path: ${paths.data_dir}/SepsisCases_Event_Log.xes
+strip_to_control_flow: true
+min_trace_len: 2
+split: [0.70, 0.15, 0.15]
+batch_size: 96
+length_bucketing: true

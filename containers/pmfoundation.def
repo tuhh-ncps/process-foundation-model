@@ -1,0 +1,44 @@
+# Apptainer/Singularity image for PM-Foundation GPU training.
+#
+# Built ONCE from inside hpc_training/ on a login node with internet (compute nodes stay offline). The base image
+# ships CUDA + a matching PyTorch, so we only add the project's other dependencies. The
+# package itself is installed too, but jobs bind the live repo and prepend it to PYTHONPATH
+# so code edits don't require a rebuild (see slurm/pretrain_ddp.sbatch).
+#
+# Build:  cd hpc_training && apptainer build $SCRATCH/pmfoundation.sif containers/pmfoundation.def
+# (cd hpc_training first; %files copies THIS folder — the standalone HPC project — into the image)
+
+Bootstrap: docker
+From: pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime
+
+%files
+    # Copy ONLY what `pip install .` needs — NOT the whole repo. Copying `.` pulls in
+    # `.venv` (broken symlinks fail the build), `data/raw` (tens of GB of logs/MIMIC),
+    # `outputs/`, and `.git`. The live repo is bind-mounted at runtime and prepended to
+    # PYTHONPATH, so the image only needs the package sources to build the wheel.
+    pyproject.toml /opt/pm_foundation/pyproject.toml
+    README.md /opt/pm_foundation/README.md
+    src /opt/pm_foundation/src
+
+%post
+    set -eux
+    export PIP_NO_CACHE_DIR=1
+    python -m pip install --upgrade pip
+    # Base image already provides torch+CUDA; install the rest from pyproject.
+    # `[tracking]` pulls in wandb (used offline on the cluster, synced from the login node).
+    cd /opt/pm_foundation
+    pip install '.[tracking]'
+    # Sanity: import must succeed at build time.
+    python -c "import torch, lightning, pm_foundation; print('torch', torch.__version__, 'cuda', torch.version.cuda)"
+
+%environment
+    export PYTHONUNBUFFERED=1
+    export OMP_NUM_THREADS=1        # avoid CPU oversubscription with many DDP procs
+    export HYDRA_FULL_ERROR=1
+
+%runscript
+    exec python "$@"
+
+%labels
+    Application PM-Foundation
+    Description Process-mining foundation-model training (CUDA + Lightning DDP)

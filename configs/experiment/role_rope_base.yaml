@@ -1,0 +1,13 @@
+# @package _global_
+# Tier-B scaled backbone: 512/16 transformer + 256/5 role GIN + a widened JEPA predictor.
+# Drop-in bigger sibling of experiment=role_rope. Pair with the time-heavy AR pretext weights
+# via EXTRA (same recipe as the current FM):
+#   ar.outcome_weight=0 ar.time_weight=1.0 ar.remaining_time_weight=1.0 ar.jepa_weight=1.0
+defaults:
+  - override /model: transformer_base_role_rope
+  - override /ar: default
+# --- widen the JEPA head to match the bigger backbone (capacity, not loss weight) ---
+ar:
+  jepa_proj_dim: 256       # projected JEPA space where the latent loss lives (was 128)
+  jepa_pred_hidden: 512    # JEPA predictor MLP hidden dim (was 256)
+  jepa_block: 8            # multi-horizon: every position predicts 1..8 steps ahead (was 4)

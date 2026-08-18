@@ -1,0 +1,14 @@
+# V2: transformer_small + GATED time encoder. Same as transformer_small_timeenc (V1) but the
+# time stream is gated per-channel (bias -2.0 -> sigmoid≈0.12 at init: control-flow first, time
+# second) and the additive sum is LayerNorm'd:
+#   event_emb = LayerNorm(activity_emb + gate * time_emb + attr_emb)
+d_model: 256
+n_layers: 6
+n_heads: 8
+ffn_dim: 1024
+dropout: 0.1
+max_seq_len: 64
+activity_embedding_dim: 128
+attribute_embedding_dim: 32
+position: learned
+time_encoder: gated        # none (baseline) | mlp (V1) | gated (V2)

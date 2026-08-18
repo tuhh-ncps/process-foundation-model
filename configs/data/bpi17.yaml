@@ -1,0 +1,14 @@
+# BPI17-only backbone, shared BPI12+BPI17 vocabulary (comparable downstream to bpi12/bpi12_bpi17).
+# NOTE: BPI17 is large (~1M traces); an uncapped 70% train split is heavy. For a quick run, add a
+# cap via the CLI, e.g. EXTRA='++data.train_logs.0.max_traces=20000' (or use data=bpi12_bpi17 which
+# caps BPI17 at 5000). Kept uncapped here so DATASET=...,bpi17 means "70% of BPI17", as intended.
+vocab_logs:
+  - path: ${paths.data_dir}/BPI12.xes
+  - path: ${paths.data_dir}/BPI17.xes
+train_logs:
+  - path: ${paths.data_dir}/BPI17.xes
+strip_to_control_flow: true
+min_trace_len: 2
+split: [0.70, 0.15, 0.15]
+batch_size: 96
+length_bucketing: true

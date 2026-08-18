@@ -1,0 +1,12 @@
+# Hospital Billing — billing of hospital service packages (healthcare / finance).
+# ~100k cases, 451k events, 18 activities; short cases (median 5). Own vocab.
+# See docs/dataset_portfolio.md.
+vocab_logs:
+  - path: ${paths.data_dir}/HospitalBilling.xes
+train_logs:
+  - path: ${paths.data_dir}/HospitalBilling.xes
+strip_to_control_flow: true
+min_trace_len: 2
+split: [0.70, 0.15, 0.15]
+batch_size: 96
+length_bucketing: true

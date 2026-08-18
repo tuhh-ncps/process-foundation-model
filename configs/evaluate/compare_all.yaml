@@ -1,0 +1,25 @@
+# Compare label-efficiency across ALL backbones on one plot: learned-capped vs RoPE-uncapped,
+# BPI12 vs multi-log, against a random baseline. Each backbone is built/encoded with its OWN
+# spec, so mixed architectures are fine. Fill each run id (from `make backbones`) or override
+# on the CLI, e.g.  evaluate.backbones.ar_bpi12=<run_id>
+backbones:
+  ar_bpi12: REPLACE_WITH_RUN_ID
+  ar_multi: REPLACE_WITH_RUN_ID
+  ar_bpi12_rope: REPLACE_WITH_RUN_ID
+  ar_multi_rope: REPLACE_WITH_RUN_ID
+  random: random
+eval_dataset: BPI12        # downstream dataset (BPI12 | BPI17) — MAY differ from the backbone's
+eval_log:
+  path: ${paths.data_dir}/${evaluate.eval_dataset}.xes
+strip_to_control_flow: true
+tasks: [next_activity, next_time, remaining_time, outcome]
+label_sizes: [100, 300, 1000, null]
+seeds: [0, 1]
+probe: {max_epochs: 15, lr: 1.0e-3, batch_size: 128, num_workers: 0, head_hidden: 128}  # head_hidden>0: MLP head for time probes (0=linear)
+outcome: {labeler: bpi12_application_outcome}
+split: [0.70, 0.15, 0.15]
+warm_start: false
+length_bucketing: true
+x_scale: log              # label-efficiency x-axis by ACTUAL #training cases: log|linear
+model: ${model}
+name: compare-all-backbones

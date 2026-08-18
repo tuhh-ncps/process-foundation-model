@@ -1,0 +1,31 @@
+# Event-level label-efficiency study (paper 1): a frozen multi-domain FM transfers to EVENT-level
+# tasks on UNSEEN logs, label- and param-efficiently. Three curves per task:
+#   fm      = frozen pretrained FM (not trained on the eval log) + trained head
+#   random  = frozen random-init backbone + trained head        (features floor)
+#   scratch = random-init backbone trained end-to-end            (from-scratch transformer)
+# Pass the eval log on the CLI: EVAL_DATASET=helpdesk|BPI20ID|... for XES; override eval_log for MIMIC.
+#
+# All tasks are per-event and self-supervised from the sequence (no labeler needed): next-activity,
+# next-3 / next-5 activities, next-Δt, remaining-time, remaining-event-count, future-activity-set.
+backbones:
+  fm: REPLACE_WITH_BACKBONE_RUN_ID     # the multi-domain FM (never trained on the eval log)
+  random: random                       # frozen random-init floor
+  scratch: scratch                     # random-init, trained end-to-end
+eval_dataset: helpdesk                 # XES log under paths.data_dir (helpdesk | BPI20ID | ...)
+eval_log:
+  path: ${paths.data_dir}/${evaluate.eval_dataset}.xes   # override for MIMIC (csv) on the CLI
+strip_to_control_flow: true
+tasks: [next_activity, next_3_activities, next_5_activities, next_time, remaining_time, remaining_count, future_activity_set]
+label_sizes: [0, 10, 30, 100, 300, 1000, 5000, null]   # 0 = zero-shot; null = all
+seeds: [0]                             # bump to [0,1,2] for the publication figure
+probe: {max_epochs: 15, lr: 1.0e-3, batch_size: 128, num_workers: 0, head_hidden: 128, early_stop_patience: 3, normalize_features: false}
+# ^ normalize_features: per-dim BatchNorm on the frozen features before the head (backbone stays
+#   frozen). Default false = current probe. Set true to accelerate the low-budget end of the curve.
+split: [0.70, 0.15, 0.15]
+holdout: true                          # temporal 70/15/15 (leak-free; same rule as pretraining)
+finetune: []                           # [] = frozen probe (fm/random). scratch auto-trains end-to-end.
+warm_start: true                       # 0-label point uses the FM's pretext heads (real zero-shot)
+length_bucketing: true
+x_scale: log
+model: ${model}                        # architecture for the random/scratch baselines
+name: event-tasks

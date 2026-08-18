@@ -1,0 +1,18 @@
+# transformer_small_role + RoPE positions + a deeper (3-layer) role GIN.
+# Same capacity/role channel as transformer_small_role; the only architecture changes are the
+# rotary (relative) position encoding and the extra GIN message-passing layer. Pair with the
+# time-heavy AR weights (outcome off; next_time/remaining/jepa = 1) via experiment=role_rope + EXTRA.
+d_model: 256
+n_layers: 6
+n_heads: 8
+ffn_dim: 1024
+dropout: 0.1
+max_seq_len: 64            # RoPE also supports 0 (unbounded, no truncation) — kept capped here:
+                           # BPI11's ~1350-event cases make O(L^2) attention costly on the 1g.18gb slice.
+activity_embedding_dim: 128
+attribute_embedding_dim: 32
+position: rope             # rotary positions on Q/K (relative) instead of a learned absolute table
+# --- role channel (candidate-record ActivityEncoder: fingerprints -> directed GIN) ---
+role_dim: 64
+role_layers: 3            # deeper directed-GIN message passing over the DFG (was 2)
+id_dropout: 0.5           # train-time UNK-masking of the ID channel -> forces role reliance (transfer)

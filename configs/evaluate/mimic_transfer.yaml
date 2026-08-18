@@ -1,0 +1,40 @@
+# MIMIC transfer study — the 2x2 of (data seen/unseen) x (task seen/unseen), all on the
+# MIMIC care-unit log capped at 10000 admissions. One config; the four quadrants are selected
+# on the CLI (see docs below). Backbone ids come from completed pretraining runs.
+#
+#   backbones.fm  = the multi-domain FM (UNSEEN data)      -> quadrants 1 & 2
+#                 = the MIMIC-adapted FM (SEEN data, init_from=<fm>) -> quadrants 3 & 4
+#   finetune: []       -> frozen probe (Q1/Q2/Q3)   |   finetune: [fm] -> end-to-end (Q4, seen task)
+#
+# The task list below is the full set; pass evaluate.tasks=[...] to restrict per quadrant.
+# Label tasks use a FIXED early observation window (24h/48h) — leak-free, standardized prediction
+# time. Imbalanced binaries report AUROC (macro-F1 floors under 1-3% prevalence). Better-balanced
+# formulations: icu_ever (~4%, vs icu_24h ~1.4%), los_long=LOS>=7d (~30%, vs 3-class los).
+#   Q1 Unseen data, pretext tasks   : tasks=[next_activity, next_time, remaining_time]
+#   Q2 Unseen data, NEW label tasks : tasks=[next_5_activities, mortality_48h, los_long_48h, icu_ever_48h, readmission]
+#   Q3 Seen data,   NEW label tasks : same tasks, backbones.fm=<mimic-adapted id>, finetune=[]
+#   Q4 Seen data,   finetune tasks  : same tasks, backbones.fm=<mimic-adapted id>, finetune=[fm]
+# Probing levels (case-head pooling, applies to ALL label tasks): run each quadrant twice,
+#   pooling=trace (fixed-summary linear probe)  and  pooling=attention (event-state aggregation).
+backbones:
+  fm: REPLACE_WITH_BACKBONE_RUN_ID     # multi-domain FM (Q1/Q2) or MIMIC-adapted FM (Q3/Q4)
+  random: random                       # frozen random-init floor
+  scratch: scratch                     # random-init, trained end-to-end (from-scratch transformer)
+eval_log:
+  path: ${paths.data_dir}/mimic_transfers.csv
+  format: csv
+  max_traces: 10000                    # cap MIMIC (546k too large); ~7k train -> a real 5000 rung + all
+tasks: [next_activity, next_time, remaining_time, next_5_activities, mortality_48h, los_long_48h, icu_ever_48h, readmission]
+label_sizes: [0, 10, 30, 100, 300, 1000, 5000, null]   # 0 = zero-shot; null = all
+seeds: [0]                             # bump to [0,1,2] for the publication figure
+probe: {max_epochs: 15, lr: 1.0e-3, batch_size: 128, num_workers: 0, head_hidden: 128, early_stop_patience: 3}
+pooling: trace                         # trace(P0) | mean(P1) | last(P2) | max(P2') | attention(P3)
+outcome: {labeler: mimic_mortality}    # only used if the generic `outcome` task is added
+split: [0.70, 0.15, 0.15]
+holdout: true                          # in-domain MIMIC eval: temporal 70/15/15 (leak-free)
+finetune: []                           # [] frozen probe (Q1/Q2/Q3) | [fm] end-to-end (Q4)
+warm_start: true                       # 0-label point uses the FM's pretext heads (real zero-shot)
+length_bucketing: true
+x_scale: log
+model: ${model}                        # architecture for the random/scratch baselines
+name: mimic-transfer

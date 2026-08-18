@@ -1,0 +1,14 @@
+# Multi-log backbone: train on BPI12 + BPI17 (shared vocab).
+vocab_logs:
+  - path: ${paths.data_dir}/BPI12.xes
+  - path: ${paths.data_dir}/BPI17.xes
+    max_traces: 5000
+train_logs:
+  - path: ${paths.data_dir}/BPI12.xes
+  - path: ${paths.data_dir}/BPI17.xes
+    max_traces: 5000
+strip_to_control_flow: true
+min_trace_len: 2
+split: [0.70, 0.15, 0.15]
+batch_size: 96
+length_bucketing: true

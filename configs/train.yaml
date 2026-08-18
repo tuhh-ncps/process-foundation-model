@@ -1,0 +1,35 @@
+# Drives the REAL pm_foundation training flows via Hydra — same code local or on Slurm.
+#   local pretrain :  python train.py experiment=role_rope trainer=local
+#   slurm pretrain :  python train.py -m experiment=role_rope trainer=ddp hydra/launcher=slurm \
+#                        hydra.launcher.partition=gpu hydra.launcher.nodes=2 hydra.launcher.gpus_per_node=1
+#   evaluate       :  python train.py task=evaluate evaluate=label_efficiency
+defaults:
+  - _self_
+  - paths: default
+  - data: bpi12
+  - model: transformer_small
+  - ar: default
+  - trainer: local
+  - logger: none         # none | wandb  (W&B runs offline on the cluster; see configs/logger/)
+  - evaluate: null       # only used when task=evaluate
+  - experiment: null
+
+task: pretrain           # pretrain | evaluate
+seed: 0
+# Continue-pretraining: warm-start the backbone from a prior run id before adapting on this
+# corpus (shape-matching tensors transfer; vocab-sized ones reinit). Used for "seen data"
+# transfer, e.g. adapt the multi-domain FM onto MIMIC:  init_from=<fm_run_id> data=mimic_transfers_5k
+init_from: null
+# Run name = <dataset>-<experiment><tag>, auto-composed from the chosen config groups (e.g.
+# bpi12-time2vec). Experiments hold only the architecture; pick the dataset on the CLI
+# (data=bpi12 | bpi12_bpi17). `tag` is an optional suffix (e.g. -noremain) to label ablations.
+tag: ""
+name: ${hydra:runtime.choices.data}-${hydra:runtime.choices.experiment}${tag}
+output_dir: ${paths.output_dir}
+
+hydra:
+  run:
+    dir: ${paths.output_dir}/hydra/${now:%Y%m%d-%H%M%S}
+  sweep:
+    dir: ${paths.output_dir}/hydra/multirun/${now:%Y%m%d-%H%M%S}
+    subdir: ${hydra.job.num}

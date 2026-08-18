@@ -1,0 +1,12 @@
+# BPI Challenge 2011 — Dutch academic hospital, gynaecology oncology (healthcare).
+# ~1.1k cases, 150k events, 624 activities: the open-vocab / role-channel workout. Own vocab.
+# Cases are long (up to ~1350 events) -> truncated at model.max_seq_len (64). See docs/dataset_portfolio.md.
+vocab_logs:
+  - path: ${paths.data_dir}/BPI11.xes
+train_logs:
+  - path: ${paths.data_dir}/BPI11.xes
+strip_to_control_flow: true
+min_trace_len: 2
+split: [0.70, 0.15, 0.15]
+batch_size: 96
+length_bucketing: true

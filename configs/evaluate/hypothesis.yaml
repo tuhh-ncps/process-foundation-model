@@ -1,0 +1,33 @@
+# Label-efficiency HYPOTHESIS: does a pretrained foundation backbone reach a target with FEWER
+# labels than a normal transformer trained from scratch? Same dataset for training + eval (in-domain).
+#
+#   make eval_ncps EVAL=hypothesis EVAL_DATASET=BPI12 \
+#       BACKBONES='{scratch:random,foundation:<backbone_run_id>}'
+#
+# - `scratch`     : random-init transformer trained END-TO-END on the labels (the normal baseline).
+# - `foundation`  : the pretrained backbone as a FROZEN linear probe (cheap transfer).
+# Flip `finetune` to [scratch, foundation] to finetune BOTH (same regime, only the init differs),
+# or drop `scratch` to just measure one. Swap EVAL_DATASET / eval_log for a different dataset;
+# for MIMIC use `evaluate.eval_log.path=…/mimic_transfers.csv evaluate.outcome.labeler=mimic_mortality`.
+backbones:
+  scratch: random
+  foundation: REPLACE_WITH_BACKBONE_RUN_ID
+finetune: [scratch]                 # end-to-end for scratch; foundation stays a frozen probe
+eval_dataset: BPI12                  # BPI12 | BPI17 (or override evaluate.eval_log.path directly)
+eval_log:
+  path: ${paths.data_dir}/${evaluate.eval_dataset}.xes
+strip_to_control_flow: true
+tasks: [outcome, next_activity]      # clearest "labels required" signal (trace label + next-step)
+label_sizes: [50, 100, 300, 1000, 3000, null]   # sweep the label budget; null -> all training cases
+seeds: [0, 1, 2]                     # ±1σ bands
+# max_epochs high enough for the from-scratch transformer to converge; backbone_lr == lr so it
+# learns its whole stack (for gentle finetuning of a PRETRAINED backbone, set backbone_lr ~ 0.1x).
+probe: {max_epochs: 40, lr: 1.0e-3, backbone_lr: 1.0e-3, batch_size: 128, num_workers: 0, head_hidden: 128}
+outcome: {labeler: bpi12_application_outcome}
+target: {frac: 0.95}                 # labels_needed = smallest budget reaching 95% of the best mean
+split: [0.70, 0.15, 0.15]
+warm_start: false
+length_bucketing: true
+x_scale: log
+model: ${model}                      # architecture for the from-scratch transformer + random probe
+name: label-efficiency-hypothesis

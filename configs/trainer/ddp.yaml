@@ -1,0 +1,6 @@
+# Multi-GPU / multi-node data parallel. devices=GPUs/node, num_nodes=nodes are read from the
+# Slurm env by train.py; strategy becomes "ddp" automatically when world size > 1.
+max_epochs: 30
+accelerator: gpu
+precision: bf16-mixed
+gradient_clip_val: 1.0

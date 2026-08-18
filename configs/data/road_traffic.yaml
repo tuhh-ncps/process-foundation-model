@@ -1,0 +1,12 @@
+# Road Traffic Fine Management (public administration; ~150k cases, 561k events, 11 activities).
+# Short, well-structured cases; canonical outcome benchmark (fine paid vs sent-to-credit-collection).
+# Standalone single-domain config (own vocab). See docs/dataset_portfolio.md.
+vocab_logs:
+  - path: ${paths.data_dir}/RoadTraffic.xes
+train_logs:
+  - path: ${paths.data_dir}/RoadTraffic.xes
+strip_to_control_flow: true
+min_trace_len: 2
+split: [0.70, 0.15, 0.15]
+batch_size: 96
+length_bucketing: true

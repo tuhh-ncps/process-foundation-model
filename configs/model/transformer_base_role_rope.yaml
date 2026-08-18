@@ -1,0 +1,21 @@
+# Scaled-up role_rope backbone (Tier B, ~55M trainable). Same recipe/channels as
+# transformer_small_role_rope, just far more capacity:
+#   transformer 256->512 wide, 6->16 deep, 8->16 heads, ffn 1024->2048
+#   role GIN     64->256 wide, 3->5 message-passing layers
+# The JEPA predictor is widened via experiment=role_rope_base (proj/hidden/horizon).
+# NOTE: the JEPA EMA teacher is a full backbone copy -> peak memory ~2x this backbone + AdamW
+# states. Train with trainer=ddp (drop the batch size) or trainer=fsdp for headroom.
+d_model: 512
+n_layers: 16
+n_heads: 16
+ffn_dim: 2048
+dropout: 0.1
+max_seq_len: 64            # keep capped (BPI11's ~1350-event cases make O(L^2) attention costly);
+                           # set 0 for unbounded length (RoPE supports it) if memory allows.
+activity_embedding_dim: 256
+attribute_embedding_dim: 64
+position: rope             # rotary (relative) positions on Q/K
+# --- role channel (candidate-record ActivityEncoder: fingerprints -> directed GIN) ---
+role_dim: 256
+role_layers: 5            # deeper directed-GIN message passing over the DFG (was 3)
+id_dropout: 0.5           # train-time UNK-masking of the ID channel -> forces role reliance (transfer)

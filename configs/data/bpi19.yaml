@@ -1,0 +1,13 @@
+# BPI Challenge 2019 — purchase-order handling (procurement / finance).
+# ~251.7k cases, 1.6M events, 42 activities; short cases. Own vocab.
+# NOTE: raw timestamps include artifactual early dates (min ~1948) — time features are log-Δt
+# based so this mostly affects absolute-time stats, not next-Δt. See docs/dataset_portfolio.md.
+vocab_logs:
+  - path: ${paths.data_dir}/BPI19.xes
+train_logs:
+  - path: ${paths.data_dir}/BPI19.xes
+strip_to_control_flow: true
+min_trace_len: 2
+split: [0.70, 0.15, 0.15]
+batch_size: 96
+length_bucketing: true

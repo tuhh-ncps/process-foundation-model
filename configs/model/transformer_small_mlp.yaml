@@ -1,0 +1,13 @@
+# transformer_small + dedicated V1 TimeEncoder: an MLP over the scalar time features, fused
+# ADDITIVELY (event_emb = activity_emb + time_emb + attr_emb) instead of concat->linear.
+# Identical to transformer_small otherwise, so ar_bpi12 vs ar_bpi12_timeenc isolates the encoder.
+d_model: 256
+n_layers: 6
+n_heads: 8
+ffn_dim: 1024
+dropout: 0.1
+max_seq_len: 64
+activity_embedding_dim: 128
+attribute_embedding_dim: 32
+position: learned
+time_encoder: mlp          # none (baseline, concat->linear) | mlp (dedicated encoder, additive)

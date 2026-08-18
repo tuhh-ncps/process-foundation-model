@@ -1,0 +1,5 @@
+max_epochs: 15
+accelerator: auto          # cpu / mps / cuda
+devices: 1
+precision: 32-true
+gradient_clip_val: 1.0

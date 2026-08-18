@@ -1,0 +1,32 @@
+act_weight: 1.0            # next-activity head weight (0 disables it — ablation)
+time_weight: 0.3           # next-Δt head weight (0 disables it)
+time_head_hidden: 0        # pretext next-Δt head: 0 = Linear (independent of the downstream probe head)
+# --- auxiliary pretext heads on the backbone (multi-task pretraining) ---
+remaining_time_weight: 0.3 # >0 enables a per-event remaining-time pretext head (masked MAE)
+remaining_head_hidden: 0   # 0 = linear (like the next-Δt and outcome pretext heads)
+outcome_weight: 0.3        # >0 enables a trace-level outcome pretext head (CE on the labeler's
+                           #   stripped prefixes — leak-free; disabled if the log has no labels)
+outcome_labeler: bpi12_application_outcome
+outcome_head_hidden: 0     # 0 = linear
+# --- JEPA pretext (joint with AR): DENSE multi-horizon latent prediction against an EMA
+#     teacher — every position predicts the projected latent 1..jepa_block steps ahead.
+#     Target = representation (not a vocab token) -> vocabulary-agnostic prediction side.
+#     Loss lives in a small projected space (BYOL-style) to shield the AR heads' features.
+jepa_weight: 0.1           # >0 enables it (Makefile button: JEPA=on|off|<weight>).
+                           #   0.1 (not 0.3): the latent regression refines rather than fights
+                           #   the CE/MAE heads — 0.3 degraded downstream in the first run.
+jepa_block: 4              # max prediction horizon (events ahead)
+jepa_pred_hidden: 256      # predictor MLP hidden dim
+jepa_momentum: 0.996       # EMA teacher base momentum (cosine-scheduled -> 1.0)
+jepa_proj_dim: 128         # projected space where the JEPA loss is computed
+# --- role-space contrastive (only active when model.role_dim > 0, e.g. EXPERIMENT=role):
+#     InfoNCE between augmented DFG views trains the ActivityEncoder independently of
+#     the dataset-specific heads (prevents role collapse; no vocabulary involved).
+role_contrast_weight: 0.3
+optimizer:
+  lr: 5.0e-4
+  weight_decay: 0.01
+  warmup_epochs: 2
+# objective: factorized     # factorized | joint_nll
+# time_dist: point          # point | huber | lognormal
+# predict_end: false        # opt-in END token for autoregressive rollout

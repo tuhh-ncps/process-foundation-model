@@ -1,0 +1,5 @@
+# @package _global_
+# V4: gated MLP + Time2Vec.
+defaults:
+  - override /model: transformer_small_time2vec
+  - override /ar: default

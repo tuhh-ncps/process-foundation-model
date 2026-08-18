@@ -1,0 +1,20 @@
+# Flexible comparison: caller supplies the backbones map, e.g.
+#   ++evaluate.backbones={baseline:<id>,timeenc:<id>,random:random}
+# Each backbone is built/encoded with its OWN spec, so mixed architectures (concat vs time-encoder,
+# learned vs RoPE) all land on one plot.
+backbones: {}
+eval_dataset: BPI12        # downstream dataset (BPI12 | BPI17) — MAY differ from the backbone's
+eval_log:
+  path: ${paths.data_dir}/${evaluate.eval_dataset}.xes
+strip_to_control_flow: true
+tasks: [next_activity, next_time, remaining_time, outcome]
+label_sizes: [100, 300, 1000, null]
+seeds: [0, 1]
+probe: {max_epochs: 15, lr: 1.0e-3, batch_size: 128, num_workers: 0, head_hidden: 128}  # num_workers=0: many short-lived probe loaders → worker teardown is noisy/fragile; datasets are small so 0 is as fast. head_hidden>0: MLP head for time probes
+outcome: {labeler: bpi12_application_outcome}
+split: [0.70, 0.15, 0.15]
+warm_start: false
+length_bucketing: true
+x_scale: log              # label-efficiency x-axis by ACTUAL #training cases: log|linear
+model: ${model}
+name: compare-backbones

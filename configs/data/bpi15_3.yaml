@@ -1,0 +1,12 @@
+# BPI Challenge 2015 — Municipality 3 building-permit process (public administration).
+# Open-vocabulary regime (~1,409 cases / 383 acts): a stress test for the vocab-free role channel. Own vocab.
+# Long cases are truncated at model.max_seq_len. See docs/dataset_portfolio.md (BPI'15).
+vocab_logs:
+  - path: ${paths.data_dir}/BPIC15_3.xes
+train_logs:
+  - path: ${paths.data_dir}/BPIC15_3.xes
+strip_to_control_flow: true
+min_trace_len: 2
+split: [0.70, 0.15, 0.15]
+batch_size: 96
+length_bucketing: true

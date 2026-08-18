@@ -1,0 +1,6 @@
+# @package _global_
+# Role-space candidate-record architecture: vocabulary-free activity fingerprints ->
+# directed GIN -> e(a) used as hybrid input channel AND open-vocab matching candidates.
+defaults:
+  - override /model: transformer_small_role
+  - override /ar: default

@@ -1,0 +1,5 @@
+# @package _global_
+# V5: RoPE + temporal attention bias.
+defaults:
+  - override /model: transformer_small_tbias
+  - override /ar: default

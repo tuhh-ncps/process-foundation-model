@@ -1,0 +1,5 @@
+# @package _global_
+# V1: MLP additive time fusion (ungated).
+defaults:
+  - override /model: transformer_small_mlp
+  - override /ar: default

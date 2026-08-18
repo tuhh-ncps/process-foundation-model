@@ -1,0 +1,6 @@
+# Self-contained by default: data and outputs live INSIDE this project directory, so the folder
+# can be moved anywhere and still run. PROJECT_ROOT is set to the project dir by train.py (works
+# from any cwd); override any of these env vars to point elsewhere (e.g. $SCRATCH on HPC).
+root_dir: ${oc.env:PROJECT_ROOT,${hydra:runtime.cwd}}
+data_dir: ${oc.env:DATA_DIR,${paths.root_dir}/data/raw}      # bundled BPI12.xes / BPI17.xes
+output_dir: ${oc.env:OUTPUT_DIR,${paths.root_dir}/outputs}   # runs (backbones, curves, manifests)

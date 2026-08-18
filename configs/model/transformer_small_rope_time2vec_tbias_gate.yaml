@@ -1,0 +1,18 @@
+# RoPE + Time2Vec (gated fusion) + gated temporal attention bias:
+#   event_i = LayerNorm(activity_i + gate_i · TimeMLP(concat(base, Time2Vec)) + attr_i)   (V4)
+#   score_h(i,j) = RoPE(q_i,h)·RoPE(k_j,h)/√d + α_h · B_h[bucket(log1p(t_i - t_j))] + mask (V5-gated)
+#   with α_h = tanh(a_h), a_h init 0  ->  temporal bias OFF at init.
+d_model: 256
+n_layers: 6
+n_heads: 8
+ffn_dim: 1024
+dropout: 0.1
+max_seq_len: 0             # uncapped (RoPE)
+activity_embedding_dim: 128
+attribute_embedding_dim: 32
+position: rope
+time_encoder: time2vec     # V4: gated additive fusion + Time2Vec input
+time2vec_k: 8
+temporal_bias: true        # V5: temporal relative attention bias
+temporal_bias_buckets: 32
+temporal_bias_gated: true  # per-head α_h = tanh(a_h), a_h init 0

@@ -1,0 +1,15 @@
+# V4: V2 gated time encoder + Time2Vec (learnable frequencies/phases) over the two continuous
+# monotonic columns (z_log_delta, z_log_elapsed). The learnable cousin of V3's fixed Fourier.
+# Same as transformer_small_timegate otherwise; Time2Vec runs inside the encoder, so the 12
+# base data features are unchanged.
+d_model: 256
+n_layers: 6
+n_heads: 8
+ffn_dim: 1024
+dropout: 0.1
+max_seq_len: 64
+activity_embedding_dim: 128
+attribute_embedding_dim: 32
+position: learned
+time_encoder: time2vec     # none | mlp (V1) | gated (V2) | fourier (V3) | time2vec (V4)
+time2vec_k: 8              # sinusoids per source column (+1 linear); start small
