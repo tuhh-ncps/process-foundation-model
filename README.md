@@ -206,6 +206,11 @@ Eleven event logs, all public except MIMIC-IV which requires credentialed access
 | Pretraining | BPI12, BPI19, BPI18, Road Traffic, BPI11, Hospital Billing |
 | Held-out evaluation | BPI17, BPI20ID, MIMIC, BPI13, Helpdesk |
 
+Every log goes flat in `data/raw/` under a specific name, and the downloads do **not** arrive with
+those names. [REPRODUCE.md](REPRODUCE.md#2-data) has the full rename table, and
+`python scripts/check_data.py` tells you exactly what is missing or misnamed before you spend any
+GPU time.
+
 Raw statistics including mean inter-event time and mean case duration are in
 [`results/log_stats.csv`](results/log_stats.csv), regenerable with `python scripts/log_stats.py`.
 

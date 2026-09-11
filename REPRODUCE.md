@@ -47,23 +47,44 @@ relative to the working directory rather than to the script. See [`hpc/README.md
 
 ## 2. Data
 
-Place logs under `data/raw/`. Ten of the eleven are public.
+All logs go **directly in `data/raw/`**, flat, under the exact names below. The code never reads the
+original download filenames, so renaming is required, not optional. This is the step people get
+wrong, so there is a checker:
 
-| Log | File | Source |
-|---|---|---|
-| BPI11 | `BPI11.xes` | 4TU, "Real-life event logs — Hospital log" |
-| BPI12 | `BPI12.xes` | 4TU, BPI Challenge 2012 |
-| BPI13 | `BPI13.xes` | 4TU, BPI Challenge 2013, incidents |
-| BPI17 | `BPI17.xes` | 4TU, BPI Challenge 2017 |
-| BPI18 | `BPI18.xes` | 4TU, BPI Challenge 2018 |
-| BPI19 | `BPI19.xes` | 4TU, BPI Challenge 2019 |
-| BPI20ID | `BPI20ID.xes` | 4TU, BPI Challenge 2020, International Declarations |
-| Road Traffic | `RoadTraffic.xes` | 4TU, Road Traffic Fine Management |
-| Hospital Billing | `HospitalBilling.xes` | 4TU, Hospital Billing |
-| Helpdesk | `helpdesk.csv` | 4TU, Helpdesk |
-| MIMIC | `mimic_transfers.csv` | built from MIMIC-IV v3.1 (credentialed) |
+```bash
+python scripts/check_data.py       # names any file that is missing or misnamed, and how to fix it
+```
 
-MIMIC is not redistributable. Build it from your own PhysioNet access:
+Ten logs are public and come from [4TU.ResearchData](https://data.4tu.nl/). Search the **exact
+title** in the middle column; the download contains the file in the third column, which you rename.
+
+| Rename to | 4TU dataset title | File inside the download | Used for |
+|---|---|---|---|
+| `BPI12.xes` | BPI Challenge 2012 | `BPI_Challenge_2012.xes` | pretrain + in-domain eval |
+| `BPI18.xes` | BPI Challenge 2018 | `BPI Challenge 2018.xes` | pretrain |
+| `BPI19.xes` | BPI Challenge 2019 | `BPI_Challenge_2019.xes` | pretrain |
+| `RoadTraffic.xes` | Road Traffic Fine Management Process | `Road_Traffic_Fine_Management_Process.xes` | pretrain |
+| `BPI11.xes` | Real-life event logs - Hospital log | `Hospital_log.xes` | pretrain |
+| `HospitalBilling.xes` | Hospital Billing - Event Log | `Hospital Billing - Event Log.xes` | pretrain |
+| `BPI17.xes` | BPI Challenge 2017 | `BPI Challenge 2017.xes` | held-out eval |
+| `BPI20ID.xes` | BPI Challenge 2020: International Declarations | `InternationalDeclarations.xes` | held-out eval |
+| `BPI13.xes` | BPI Challenge 2013, incidents | `BPI_Challenge_2013_incidents.xes` | held-out eval |
+| `helpdesk.csv` | Helpdesk | `helpdesk.csv` | held-out eval |
+| `SepsisCases_Event_Log.xes` | Sepsis Cases - Event Log | `Sepsis Cases - Event Log.xes` | Phase 1a validation only |
+
+Two direct links, as a sanity check that you have the right datasets:
+[BPI Challenge 2012](https://data.4tu.nl/articles/dataset/BPI_Challenge_2012/12689204) ·
+[BPI Challenge 2017](https://data.4tu.nl/articles/dataset/BPI_Challenge_2017/12696884).
+
+`helpdesk.csv` must have the header `case_id,activity,timestamp`. Some mirrors ship a wider CSV or
+an XES; only those three columns are read.
+
+Expect roughly **3.9 GB** once unpacked; BPI18 alone is 1.9 GB.
+
+### MIMIC
+
+MIMIC-IV is not redistributable and needs credentialed PhysioNet access, so it cannot be scripted for
+you. With access:
 
 ```bash
 python scripts/build_mimic_log.py \
@@ -71,17 +92,19 @@ python scripts/build_mimic_log.py \
   --out   data/raw/mimic_transfers.csv
 ```
 
-Each hospital admission becomes a trace of care-unit transfers, with an outcome terminal appended at
-discharge. The paper evaluates a fixed subset of 5,000 admissions.
+Each admission becomes a trace of care-unit transfers with an outcome terminal at discharge; the
+paper uses a fixed subset of 5,000 admissions. **Without MIMIC everything else still runs** — you
+reproduce four of the five held-out logs, and `check_data.py` exits 0 to say so.
 
-Verify your copies match ours:
+### Verify before spending GPU time
 
 ```bash
-python scripts/log_stats.py            # overwrites results/log_stats.csv
-git diff --stat results/log_stats.csv  # empty output means your logs match ours exactly
+python scripts/check_data.py --content   # recomputes statistics from your copies
+git diff results/log_stats.csv           # no diff means they are equivalent to ours
 ```
 
----
+`results/log_stats.csv` is committed, so this catches a truncated or wrong-variant download in
+minutes instead of after a training run.
 
 ## 3. Phase 1a — role encoder
 
