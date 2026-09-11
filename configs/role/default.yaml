@@ -1,0 +1,44 @@
+# Standalone role-encoder pretraining (task=role_pretrain) — trains the vocabulary-free
+# ActivityEncoder BY ITSELF, with held-out quality control, and saves role_encoder.pt.
+#   python train.py task=role_pretrain role=default trainer=local
+# Log paths resolve against ${paths.data_dir}. `val_logs` are HELD-OUT: used only to score the
+# composite quality metric that selects the best checkpoint (never trained on).
+name: role-standalone
+
+strip_to_control_flow: true
+min_trace_len: 2
+split: [0.70, 0.15, 0.15]
+
+# Diverse cross-domain corpus. Held-out logs must differ from train logs to measure transfer.
+train_logs:
+  - path: ${paths.data_dir}/BPI12.xes
+    max_traces: 2500
+  - path: ${paths.data_dir}/BPI17.xes
+    max_traces: 2500
+  - path: ${paths.data_dir}/SepsisCases_Event_Log.xes
+  - path: ${paths.data_dir}/HospitalBilling.xes
+    max_traces: 2500
+  - path: ${paths.data_dir}/RoadTraffic.xes
+    max_traces: 2500
+val_logs:
+  - path: ${paths.data_dir}/helpdesk.csv
+  - path: ${paths.data_dir}/BPI20ID.xes
+
+model:
+  aggregator: sum         # true-GIN neighbour sum (WL-expressive, default) | mean = row-normalized (scale-invariant)
+  role_dim: 64
+  role_layers: 3
+  edge_dropout: 0.2       # DFG edge-dropout augmentation (for the contrastive views)
+  channel_dropout: 0.15   # whole-channel dropout (stops any one channel becoming a shortcut)
+  tau: 0.2                # temperature for the encoder's own contrastive loss
+
+objective:                # role-aware: view-consistency + cross-log SupCon + linear role-CE
+  w_contrastive: 0.5      # anti-collapse / stability
+  w_supcon: 0.5           # cross-log same-role clustering
+  w_ce: 1.0               # sharpen the linear start/end axis (aux head, not saved)
+  tau_supcon: 0.2
+
+optim:
+  lr: 1.0e-3
+  epochs: 120
+  ema: 0.35               # smooth the (noisy) held-out composite for model selection

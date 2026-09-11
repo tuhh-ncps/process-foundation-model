@@ -25,6 +25,8 @@ on an identical encoding.
 Config schema (a plain dict; see ``configs/experiment/label_efficiency.yaml``)::
 
     backbones: {ar_multi: <run_id>, ar_bpi12: <run_id>, random: "random"}
+                # sentinels: random (frozen plain transformer, vocab-blind) | scratch (end-to-end)
+                # | random_role (frozen random backbone + random role encoder over the eval DFG)
     eval_log:  {path, format?, max_traces?}
     strip_to_control_flow: true
     tasks:      [next_activity, outcome, remaining_time, next_time]
@@ -38,6 +40,8 @@ Config schema (a plain dict; see ``configs/experiment/label_efficiency.yaml``)::
                            # per-event states H): trace(P0) | mean(P1) | last(P2) | attention(P3).
     finetune:   []         # [] frozen probes (default) | true (all end-to-end) | [alias,...].
                            # A `random` backbone + finetune = a normal transformer from scratch.
+    finetune_role: []      # [alias,...]: transformer frozen, role encoder + heads trained
+                           # (partial fine-tuning; grid-defining, mode "finetune_role").
     target:     {frac: 0.95}   # "labels required" = smallest budget reaching frac of the best
                                # per-task mean; or {abs: {outcome: 0.7}} for absolute thresholds.
     warm_start: false      # DEFAULT: fresh random heads. Opt-in true warm-starts
@@ -46,7 +50,12 @@ Config schema (a plain dict; see ``configs/experiment/label_efficiency.yaml``)::
                            # probe trains on subsamples of the FULL log and tests on the FULL log
                            # (stable full-domain metric; largest-budget point is an upper bound).
     split: [0.70, 0.15, 0.15]
+    role_corpus: train     # DEFAULT: DFG + fingerprints of the eval log come from its whole (unlabelled)
+                           # training partition, shared by all budgets. "budget" => rebuilt from ONLY
+                           # the N sampled cases of each (budget, seed) probe (strict few-shot; the
+                           # zero-label point keeps the train graph). Same sampler as the head.
     min_trace_len: 2
+    max_trace_len: null   # e.g. 64: EXCLUDE cases longer than the window instead of truncating them
     fresh:      false      # DEFAULT: crash-recovery ON. Each probe is checkpointed to
                            # ${output_dir}/label_efficiency/.ckpt/<config-hash>/; re-submitting an
                            # identical run resumes (skips done probes). The checkpoint is deleted once
@@ -107,7 +116,7 @@ from pm_foundation.data.preprocessing import (
     split_log,
 )
 from pm_foundation.data.readers import get_reader
-from pm_foundation.data.roles import fit_role_graph
+from pm_foundation.data.roles import apply_aggregator, fit_role_graph
 from pm_foundation.data.samplers import LengthBucketedSampler
 from pm_foundation.data.schema import Event, EventLog, Trace
 from pm_foundation.data.vocabulary import RESERVED_TOKENS, Vocabulary
@@ -146,6 +155,8 @@ with contextlib.suppress(RuntimeError, AttributeError):  # platform without this
 _ALL = 10_000_000  # sentinel used when a label budget is null/None ("use everything")
 _RANDOM = "random"  # frozen, vocab-blind untrained floor (knows NO dataset's vocabulary)
 _SCRATCH = "scratch"  # random-init, eval-vocab, trained end-to-end (the from-scratch transformer)
+_RANDOM_ROLE = "random_role"  # frozen, vocab-blind, random-init backbone WITH a random-init role
+#   encoder over the eval log's real DFG fingerprints: "random features of the same inputs" control
 # Labelers selectable as the `outcome` task's labeler (evaluate.outcome.labeler=<name>).
 # The mimic labelers below are ALSO wired as first-class task names via _TASK_LABELERS, so a
 # single run can evaluate several of them at once (tasks: [mortality, los, icu, readmission]).
@@ -250,6 +261,7 @@ class _KeepBestState(L.Callback):
         self.mode = mode
         self.best = float("inf") if mode == "min" else float("-inf")
         self.state: dict[str, torch.Tensor] | None = None
+        self.best_epoch: int = -1  # epoch index of the restored (best-val) weights, for logging
 
     def on_validation_end(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
         if trainer.sanity_checking:  # the pre-train sanity pass is not a real epoch
@@ -262,6 +274,7 @@ class _KeepBestState(L.Callback):
         if improved:
             self.best = value
             self.state = {k: v.detach().cpu().clone() for k, v in pl_module.state_dict().items()}
+            self.best_epoch = int(trainer.current_epoch)
 
     def on_fit_end(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
         if self.state is not None:
@@ -341,8 +354,9 @@ def _resolve_per_backbone(
     (e.g. learned+capped vs RoPE+uncapped) can be compared on one plot: each backbone is built
     and its eval data encoded with its OWN spec.
 
-    Two untrained baselines are handled specially (no weights loaded), both a PLAIN transformer
-    (role_dim=0) sized like the first real backbone (or ``config.model`` if all-untrained):
+    Three untrained baselines are handled specially (no weights loaded), sized like the first real
+    backbone (or ``config.model`` if all-untrained); ``random``/``scratch`` are PLAIN transformers
+    (role_dim=0), ``random_role`` keeps the role channel:
 
       - ``random`` — a FROZEN, **vocab-blind** floor: its activity vocabulary is empty, so every
         activity (from either dataset) maps to UNK. It genuinely knows NO vocabulary — just
@@ -354,7 +368,7 @@ def _resolve_per_backbone(
     per: dict[str, tuple[FeatureSpec, dict[str, Any]]] = {}
     ref_cfg: dict[str, Any] | None = None  # architecture of the first real backbone
     for alias, run_id in backbones.items():
-        if run_id in (_RANDOM, _SCRATCH):
+        if run_id in (_RANDOM, _SCRATCH, _RANDOM_ROLE):
             continue
         run_dir = registry.run_dir("backbone", run_id)
         spec = FeatureSpec.load(run_dir / "feature_spec.json")
@@ -362,8 +376,15 @@ def _resolve_per_backbone(
         model_cfg["causal"] = True  # probes read last-event state; keep leak-free pooling
         per[alias] = (spec, model_cfg)
         ref_cfg = ref_cfg or model_cfg
-    if any(r in (_RANDOM, _SCRATCH) for r in backbones.values()):
+    if any(r in (_RANDOM, _SCRATCH, _RANDOM_ROLE) for r in backbones.values()):
         base_cfg = {**(ref_cfg or dict(config["model"])), "causal": True, "role_dim": 0}
+        # random_role: same architecture as the real backbone INCLUDING the role encoder (random
+        # init, frozen), fed the eval log's real fingerprints/DFG; ID channel vocab-blind like
+        # `random`, so the role channel is its only activity signal - exactly PFM's situation on a
+        # held-out log, minus pretraining. Isolates "pretrained weights" from "DFG-derived inputs".
+        role_cfg = {**(ref_cfg or dict(config["model"])), "causal": True}
+        if int(role_cfg.get("role_dim", 0)) <= 0 and any(r == _RANDOM_ROLE for r in backbones.values()):
+            raise ValueError("random_role needs a model config with role_dim > 0 (e.g. model=role_gin15)")
         eval_spec = fit_feature_spec(
             train_log, max_seq_len=int(config["model"].get("max_seq_len", 64))
         )
@@ -375,6 +396,8 @@ def _resolve_per_backbone(
                 per[alias] = (blind_spec, base_cfg)
             elif run_id == _SCRATCH:
                 per[alias] = (eval_spec, base_cfg)
+            elif run_id == _RANDOM_ROLE:
+                per[alias] = (blind_spec, role_cfg)
     return per
 
 
@@ -440,13 +463,22 @@ def _checkpoint_key(config: dict[str, Any], backbones: dict[str, str]) -> str:
     payload = {
         "backbones": dict(sorted(backbones.items())),
         "eval_log": (config.get("eval_log") or {}).get("path"),
+        "max_traces": (config.get("eval_log") or {}).get("max_traces"),
+        "max_trace_len": config.get("max_trace_len"),
+        "min_trace_len": config.get("min_trace_len", 2),
+        "strip": bool(config.get("strip_to_control_flow", True)),
         "tasks": list(config.get("tasks", [])),
         "label_sizes": list(config.get("label_sizes", [])),
         "seeds": list(config.get("seeds", [0, 1])),
         "split": list(config.get("split", (0.70, 0.15, 0.15))),
         "warm_start": bool(config.get("warm_start", False)),
         "holdout": bool(config.get("holdout", True)),
+        # per-budget descriptors change the grid; omitted in train mode so older checkpoints resume
+        **({"role_corpus": "budget"} if str(config.get("role_corpus", "train")) == "budget" else {}),
         "finetune": config.get("finetune", []),
+        # partial fine-tuning (role encoder only) changes the grid; omitted when unused so older
+        # checkpoints keep resuming
+        **({"finetune_role": sorted(config.get("finetune_role") or [])} if config.get("finetune_role") else {}),
         "pooling": config.get("pooling", "trace"),  # case-head pooling (P0-P3) is grid-defining
         "outcome": (config.get("outcome") or {}).get("labeler"),
         "probe": {
@@ -477,6 +509,8 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
     probe_cfg = dict(config.get("probe") or {})
     split = tuple(config.get("split", (0.70, 0.15, 0.15)))
     min_len = int(config.get("min_trace_len", 2))
+    max_len = config.get("max_trace_len")  # exclude cases longer than this (leak-free bound; None = keep all)
+    max_len = int(max_len) if max_len else None
     strip = bool(config.get("strip_to_control_flow", True))
     warm_start = bool(config.get("warm_start", False))  # default: fresh heads (opt-in only)
     length_bucketing = bool(config.get("length_bucketing", False))  # keep padding tight if uncapped
@@ -497,6 +531,14 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
     finetune_aliases: set[str] = set(backbones) if ft is True else set(ft or [])
     # A `scratch` backbone is a from-scratch transformer → always trained end-to-end.
     finetune_aliases |= {a for a, r in backbones.items() if r == _SCRATCH}
+    # Partial fine-tuning: transformer frozen, role encoder trained with the heads (list of aliases).
+    finetune_role_aliases: set[str] = set(config.get("finetune_role") or [])
+    both = finetune_aliases & finetune_role_aliases
+    if both:
+        raise ValueError(f"aliases in both finetune and finetune_role: {sorted(both)}")
+    unknown_fr = finetune_role_aliases - set(backbones)
+    if unknown_fr:
+        raise ValueError(f"finetune_role aliases not in backbones: {sorted(unknown_fr)}")
     # "Labels required" target: fraction of the best-achievable mean per task (default), or an
     # absolute per-task threshold (target.abs.{task}). Drives labels_to_target.csv.
     tgt_cfg = dict(config.get("target") or {})
@@ -515,7 +557,7 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
     ).read(config["eval_log"]["path"])
     if strip:
         log = _strip_to_control_flow(log)
-    built = build_traces(log, min_trace_len=min_len)
+    built = build_traces(log, min_trace_len=min_len, max_trace_len=max_len)
     # holdout=false: NO train/val/test split — the probe trains on subsamples of the FULL eval log
     # and is tested on the FULL log. Intended for CROSS-DOMAIN eval (the frozen backbone never saw
     # this domain, so there is no backbone-leakage). At small budgets this is ~leak-free few-shot
@@ -523,6 +565,9 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
     # bound. Descriptors (feature spec + role graph) are then fit over all traces too — fine for
     # cross-domain aggregate stats, but do NOT use holdout=false for a leakage-strict in-domain claim.
     holdout = bool(config.get("holdout", True))
+    role_corpus = str(config.get("role_corpus", "train"))
+    if role_corpus not in ("train", "budget"):
+        raise ValueError(f"role_corpus must be 'train' or 'budget', got {role_corpus!r}")
     if holdout:
         splits = split_log(built, SplitStrategy.TEMPORAL, split, seed=0)
     else:
@@ -567,16 +612,54 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
     if any(int(cfg.get("role_dim", 0)) > 0 for _, cfg in bb_specs.values()):
         eval_role_graph = fit_role_graph(list(splits.train.traces), eval_activity_vocab)
 
+    # role_corpus="budget": the descriptors of a held-out log are rebuilt from ONLY the training
+    # cases of each (budget, seed) probe — the strict few-shot reading, where nothing but the
+    # labelled cases is known about the target log. The graph is fitted on the very trace list
+    # `_task_loaders` hands to the head (per-event tasks: the N sampled cases; outcome-kind tasks:
+    # their labeler-filtered, prefix-stripped sample), cached per (task kind, size, seed). The label
+    # space (vocabulary) stays the train-partition catalogue; activities absent from the sample get
+    # zero fingerprint rows. Budgets that cover the whole partition, and the zero-label point, use
+    # the train-partition graph (so N=0 is NOT a zero-knowledge point; exclude it from budget curves).
+    _budget_graphs: dict[tuple[str, int, int], dict[str, torch.Tensor]] = {}
+    _budget_stats: dict[str, dict[str, int]] = {}
+
+    def role_graph_for(
+        kind: str, size: int, seed: int, train_traces: list[Trace]
+    ) -> dict[str, torch.Tensor] | None:
+        if (
+            eval_role_graph is None
+            or role_corpus == "train"
+            or size <= 0
+            or size >= len(splits.train.traces)
+        ):
+            return eval_role_graph
+        key = (kind, size, seed)
+        if key not in _budget_graphs:
+            g = fit_role_graph(list(train_traces), eval_activity_vocab)
+            _budget_graphs[key] = g
+            _budget_stats[f"{kind}/{size}/{seed}"] = {
+                "n_traces": len(train_traces),
+                "n_activities_present": int(g["real_mask"].sum()),
+            }
+            print(
+                f"[label-efficiency] role_corpus=budget: DFG/fingerprints from {len(train_traces)} "
+                f"{kind} training cases (n_labels={size}, seed={seed}), "
+                f"{int(g['real_mask'].sum())} activities present",
+                flush=True,
+            )
+        return _budget_graphs[key]
+
     # Preload backbone weights once per alias (state dicts kept on CPU).
     weights: dict[str, dict[str, torch.Tensor] | None] = {}
+    role_weights: dict[str, dict[str, torch.Tensor] | None] = {}
     for alias, run_id in backbones.items():
-        weights[alias] = (
-            None
-            if run_id in (_RANDOM, _SCRATCH)
-            else torch.load(
-                registry.run_dir("backbone", run_id) / "backbone.pt", map_location="cpu"
-            )
-        )
+        if run_id in (_RANDOM, _SCRATCH, _RANDOM_ROLE):
+            weights[alias], role_weights[alias] = None, None
+            continue
+        rd = registry.run_dir("backbone", run_id)
+        weights[alias] = torch.load(rd / "backbone.pt", map_location="cpu")
+        role_pt = rd / "role_encoder.pt"  # true-split; legacy runs keep the encoder in backbone.pt
+        role_weights[alias] = torch.load(role_pt, map_location="cpu") if role_pt.exists() else None
 
     # Outcome supervision (each labeler strips decision-leaking events itself). Every outcome-kind
     # task gets its OWN labeler + train/val/test splits, so one grid can score several at once
@@ -701,16 +784,14 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
         # Warm-start heads whose task matches a pretext (next-activity/next-time) from the
         # backbone's persisted pretext heads — near-zero-label transfer. Random backbones
         # and non-pretext tasks (outcome, remaining-time) fall through to a fresh head.
-        if warm_start and backbones[alias] not in (_RANDOM, _SCRATCH) and task in ws.WARM_STARTABLE:
+        if warm_start and backbones[alias] not in (_RANDOM, _SCRATCH, _RANDOM_ROLE) and task in ws.WARM_STARTABLE:
             ws.warm_start(head, task, registry.run_dir("backbone", backbones[alias]))
         bb = TraceBackbone.from_config(model_cfg, spec)
         if weights[alias] is not None:
-            bb.load_state_dict(weights[alias])
+            bb.load_pretrained(weights[alias], role_weights[alias])
         # Role backbones: install the EVAL catalogue (train-split-only graph) AFTER loading,
         # so the frozen encoder scores this dataset's activities in the shared role space.
-        role_encoder = getattr(bb.embedding, "role_encoder", None)
-        if role_encoder is not None and eval_role_graph is not None:
-            role_encoder.set_graph(eval_role_graph)
+        role_encoder = getattr(bb, "role_encoder", None)
         # Frozen probe (default) vs end-to-end. For end-to-end, backbone_lr defaults to the head lr
         # (a from-scratch transformer must learn its whole stack, not gently adapt); override
         # probe.backbone_lr (e.g. 0.1x) to gently finetune a PRETRAINED backbone instead.
@@ -725,9 +806,10 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
             },
             feature_norm=normalize_features,
             d_model=int(model_cfg["d_model"]),
+            finetune_role=alias in finetune_role_aliases,
         )
         per_event_loader, outcome_loader = make_loaders(spec)
-        train_dl, val_dl, test_dl, n_train = _task_loaders(
+        train_dl, val_dl, test_dl, n_train, train_traces = _task_loaders(
             task,
             tdef,
             size,
@@ -737,6 +819,16 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
             per_event_loader,
             outcome_loader,
         )
+        # Role backbones: install the EVAL catalogue AFTER loading the weights (train-split graph,
+        # or in role_corpus=budget the graph of exactly the cases this probe trains on), so the
+        # frozen encoder scores this dataset's activities in the shared role space.
+        probe_role_graph = role_graph_for(tdef.kind, size, seed, train_traces)
+        if role_encoder is not None and probe_role_graph is not None:
+            # Match the aggregator this backbone was TRAINED with (mean|sum, from its manifest) —
+            # the encoder learns to its adjacency scale, so mismatching it would corrupt e(a).
+            role_encoder.set_graph(
+                apply_aggregator(probe_role_graph, str(model_cfg.get("aggregator", "mean")))
+            )
         # Early-stop on the held-out val split and restore the best-val weights (in memory).
         # `max_epochs` is the cap; patience lets a plateaued probe stop sooner. `strict=False`
         # tolerates an occasionally-empty val split (metric absent -> no stop, no crash).
@@ -749,6 +841,11 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
         ]
         t = trainer(callbacks)
         t.fit(module, train_dl, val_dl)
+        print(
+            f"[label-efficiency] epochs task={task} backbone={alias} n_labels={size} seed={seed} "
+            f"epochs_run={int(t.current_epoch)} best_epoch={callbacks[1].best_epoch}",
+            flush=True,
+        )
         result = t.test(module, test_dl, verbose=False)[0]
         # Confusion matrix for the classification tasks (best-case: largest budget, first seed).
         cm = None
@@ -829,7 +926,11 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
                         "higher_is_better": tdef.higher_is_better,
                         "backbone_alias": alias,
                         "backbone_run_id": backbones[alias],
-                        "mode": "finetune" if alias in finetune_aliases else "frozen",
+                        "mode": (
+                            "finetune"
+                            if alias in finetune_aliases
+                            else ("finetune_role" if alias in finetune_role_aliases else "frozen")
+                        ),
                         "n_labels": ("all" if size >= _ALL else size),
                         "n_train_samples": n_train,  # ACTUAL #training cases (budget capped by availability)
                         "seed": seed,
@@ -872,7 +973,13 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
             # Auditable descriptor provenance: role fingerprints/DFG come from
             # the eval TRAIN split only (never scored traces).
             "role_corpus": (
-                {"split": "train", "n_traces": len(splits.train.traces)}
+                {
+                    "split": "train" if role_corpus == "train" else "budget-sample",
+                    "n_traces": len(splits.train.traces),  # partition size (train mode corpus)
+                    "mode": role_corpus,
+                    # budget mode: per "kind/size/seed" the corpus actually fitted (traces, activities)
+                    "budget_corpora": (dict(_budget_stats) if role_corpus == "budget" else None),
+                }
                 if eval_role_graph is not None
                 else None
             ),
@@ -887,6 +994,7 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
             # Label-efficiency hypothesis: which backbones trained end-to-end,
             # and the "labels required" target definition.
             "finetune": sorted(finetune_aliases),
+            "finetune_role": sorted(finetune_role_aliases),
             "target": {"frac": target_frac, "abs": target_abs},
         },
     )
@@ -947,7 +1055,7 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
             flush=True,
         )
 
-    real_backbones = {a: r for a, r in backbones.items() if r not in (_RANDOM, _SCRATCH)}
+    real_backbones = {a: r for a, r in backbones.items() if r not in (_RANDOM, _SCRATCH, _RANDOM_ROLE)}
     for alias, run_id in real_backbones.items():
         registry.link_backbone_to_eval(run_id, ctx.run_id, info={"alias": alias, "tasks": tasks})
     registry.finish(ctx, links={"backbones": backbones})
@@ -994,10 +1102,11 @@ def _task_loaders(
     outcome_splits: dict[str, tuple[list[Trace], list[int]]],
     per_event_loader: Callable[[list[Trace], bool], DataLoader[Any]],
     outcome_loader: Callable[[tuple[list[Trace], list[int]], bool], DataLoader[Any]],
-) -> tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any], int]:
-    """Returns (train_dl, val_dl, test_dl, n_train) where n_train is the ACTUAL number of
-    training cases used (the label budget capped by what's available) — used to place the
-    label-efficiency x-axis proportional to real sample count and to record it in the CSVs."""
+) -> tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any], int, list[Trace]]:
+    """Returns (train_dl, val_dl, test_dl, n_train, train_traces) where n_train is the ACTUAL number
+    of training cases used (the label budget capped by what's available) — used to place the
+    label-efficiency x-axis proportional to real sample count and to record it in the CSVs — and
+    train_traces is the exact trace list the head trains on (role_corpus=budget fits the DFG on it)."""
     if tdef.kind == "outcome":
         train_pairs = list(zip(*outcome_splits["train"], strict=True))
         sub = _subsample(train_pairs, size, seed)
@@ -1008,6 +1117,7 @@ def _task_loaders(
             outcome_loader(outcome_splits["val"], False),
             outcome_loader(outcome_splits["test"], False),
             len(sub),
+            train_traces,
         )
     train = _subsample(list(splits.train.traces), size, seed)
     return (
@@ -1015,4 +1125,5 @@ def _task_loaders(
         per_event_loader(list(splits.val.traces), False),
         per_event_loader(list(splits.test.traces), False),
         len(train),
+        train,
     )

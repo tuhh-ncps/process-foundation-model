@@ -18,4 +18,5 @@ position: rope             # rotary (relative) positions on Q/K
 # --- role channel (candidate-record ActivityEncoder: fingerprints -> directed GIN) ---
 role_dim: 256
 role_layers: 5            # deeper directed-GIN message passing over the DFG (was 3)
+aggregator: sum           # true-GIN neighbour sum (WL-expressive, default) | mean = row-normalized (scale-invariant)
 id_dropout: 0.5           # train-time UNK-masking of the ID channel -> forces role reliance (transfer)

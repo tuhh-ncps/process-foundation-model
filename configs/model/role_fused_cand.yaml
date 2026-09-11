@@ -1,0 +1,19 @@
+# Control variant: the OLD FM's fused 4-channel role encoder (h+name+stats+ctx, depth-3, mean agg)
+# trained under the CANDIDATES' recipe (jepa 0.1, time/remain 0.3, outcome 0.3, frozen Phase-1 role).
+# Completes the 2x2 against old FM (fused+jepa1.0) and gin15 (structural+jepa0.1), so the role
+# encoder and the pretraining recipe can finally be separated.
+d_model: 256
+n_layers: 6
+n_heads: 8
+ffn_dim: 1024
+dropout: 0.1
+max_seq_len: 64
+activity_embedding_dim: 128
+attribute_embedding_dim: 32
+position: rope
+id_dropout: 0.5
+aggregator: mean              # match the old FM's encoder (its manifest had no key -> mean fallback)
+# --- role embedding ---
+role_arch: fused              # the full 4-channel ActivityEncoder
+role_dim: 64
+role_layers: 3                # match the old FM's depth-3 role encoder

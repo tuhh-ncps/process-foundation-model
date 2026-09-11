@@ -128,7 +128,7 @@ class AutoregressiveLitModule(L.LightningModule):
         # Open-vocabulary CANDIDATE MATCHING replaces the fixed linear head when the
         # backbone has a role channel: logits(c) = scale * cos(q_i, e(c)) over the tied
         # ActivityEncoder table. New catalogue => new output space, backbone untouched.
-        role_encoder = getattr(backbone.embedding, "role_encoder", None)
+        role_encoder = getattr(backbone, "role_encoder", None)
         self.uses_matching = role_encoder is not None
         if self.uses_matching:
             if predict_end:
@@ -334,7 +334,7 @@ class AutoregressiveLitModule(L.LightningModule):
         states = out.event_states  # (B, L, d)
         if self.uses_matching:
             # Candidate matching over the tied ActivityEncoder table (open vocabulary).
-            table = self.backbone.embedding.role_encoder()  # (V, r)
+            table = self.backbone.role_encoder()  # (V, r)
             q = F.normalize(self.match_query(states), dim=-1)
             cand = F.normalize(table, dim=-1, eps=1e-8)
             act_logits = self.match_logit_scale.exp().clamp(max=100.0) * (q @ cand.t())
@@ -394,7 +394,7 @@ class AutoregressiveLitModule(L.LightningModule):
         # Role-space contrastive (InfoNCE over augmented DFG views): shapes the activity
         # encoder independently of the dataset-specific heads; prevents role collapse.
         role_loss = None
-        role_encoder = getattr(self.backbone.embedding, "role_encoder", None)
+        role_encoder = getattr(self.backbone, "role_encoder", None)
         if role_encoder is not None and self.role_contrast_weight > 0:
             role_loss = role_encoder.contrastive_loss()
             if role_loss is not None:
@@ -437,12 +437,12 @@ class AutoregressiveLitModule(L.LightningModule):
         ``graph`` comes from ``fit_role_graph`` on the pretrain TRAIN split — never on
         traces that will be scored (see the leakage contract in data/roles.py).
         """
-        role_encoder = getattr(self.backbone.embedding, "role_encoder", None)
+        role_encoder = getattr(self.backbone, "role_encoder", None)
         if role_encoder is None:
             raise ValueError("set_role_graph called but the backbone has no role encoder")
         role_encoder.set_graph(graph)
         if self.jepa_teacher is not None:  # keep the EMA teacher's copy consistent
-            self.jepa_teacher.teacher.embedding.role_encoder.set_graph(graph)
+            self.jepa_teacher.teacher.role_encoder.set_graph(graph)
 
     def on_train_batch_end(self, outputs: Any, batch: Any, batch_idx: int) -> None:
         # EMA update AFTER the optimizer step: teacher tracks the student on a cosine

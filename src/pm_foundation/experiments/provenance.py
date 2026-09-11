@@ -20,6 +20,7 @@ from typing import Any
 # Maps a run *kind* to the sub-directory of the output root that holds its runs.
 _KIND_SUBDIR = {
     "backbone": "backbones",
+    "role_encoder": "role_encoders",
     "label_efficiency": "label_efficiency",
     "zero_shot": "zero_shot",
 }

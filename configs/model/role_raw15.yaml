@@ -1,0 +1,17 @@
+# Role-embedding ablation candidate: Raw-15 (the raw 15-dim fingerprint, FROZEN, no learning).
+# role_dim MUST equal the #features (15). role_arch=raw -> RoleEmbedder with zero params;
+# Phase-1 is a no-op (nothing to train) and the backbone reads the raw fingerprint directly.
+d_model: 256
+n_layers: 6
+n_heads: 8
+ffn_dim: 1024
+dropout: 0.1
+max_seq_len: 64
+activity_embedding_dim: 128
+attribute_embedding_dim: 32
+position: rope
+id_dropout: 0.5
+aggregator: sum               # unused by raw (adjacency not consumed), kept for config parity
+role_arch: raw
+role_dim: 15                  # = number of fingerprint features (raw passthrough)
+role_feature_subset: all

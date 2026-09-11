@@ -16,6 +16,7 @@ probe: {max_epochs: 15, lr: 1.0e-3, batch_size: 128, num_workers: 0, head_hidden
 pooling: trace            # case-head pooling for the `outcome` task: trace|mean|last|max|attention
 outcome: {labeler: bpi12_application_outcome}
 split: [0.70, 0.15, 0.15]
+role_corpus: train        # train: DFG/fingerprints from the whole training partition | budget: from the N sampled cases only
 warm_start: true          # 0-label point uses the backbone's pretext heads (a real zero-shot)
 length_bucketing: true
 x_scale: log              # label-efficiency x-axis by ACTUAL #training cases: log|linear

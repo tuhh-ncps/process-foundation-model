@@ -12,6 +12,7 @@ position: learned          # learned | rope
 # the tied e(c) table. Fingerprints are fit on the TRAIN split only (data/roles.py).
 role_dim: 64               # role-space width (0 disables the whole channel)
 role_layers: 2             # directed GIN message-passing layers on the DFG
+aggregator: sum            # true-GIN neighbour sum (WL-expressive, default) | mean = row-normalized (scale-invariant)
 id_dropout: 0.0            # train-time prob of UNK-masking the ID channel so the model must use
                            # the role channel -> makes the role space load-bearing / transferable.
                            # 0 = off (default). Try 0.5 for cross-domain transfer experiments.

@@ -1,0 +1,15 @@
+# Role-embedding ablation candidate: MLP-15 (per-node MLP over the 15 feats, NO message passing).
+d_model: 256
+n_layers: 6
+n_heads: 8
+ffn_dim: 1024
+dropout: 0.1
+max_seq_len: 64
+activity_embedding_dim: 128
+attribute_embedding_dim: 32
+position: rope
+id_dropout: 0.5
+aggregator: sum               # unused by mlp (no graph aggregation), kept for config parity
+role_arch: mlp
+role_dim: 64
+role_feature_subset: all

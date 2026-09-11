@@ -114,7 +114,6 @@ class EventEmbedding(nn.Module):
         fourier_bands: tuple[float, ...] = (1, 2, 4, 8),
         time2vec_k: int = 8,
         role_dim: int = 0,
-        role_layers: int = 2,
         id_dropout: float = 0.0,
     ) -> None:
         super().__init__()
@@ -136,13 +135,7 @@ class EventEmbedding(nn.Module):
         # fingerprints/DFG/names to e(a); its table joins the input as ID (+) e(a_i) and is
         # the tied candidate bank of the AR matching head. Graph buffers are installed via
         # set_graph (train-split-only corpus — see data/roles.py leakage contract).
-        self.role_encoder = None
-        if role_dim > 0:
-            from pm_foundation.models.role_encoder import ActivityEncoder
-
-            self.role_encoder = ActivityEncoder(
-                n_activities, role_dim=role_dim, n_layers=role_layers
-            )
+        self.has_role = role_dim > 0  # role table e(a) is produced by TraceBackbone.role_encoder
 
         # PAD id is 0 across activity and categorical vocabularies, so padding_idx=0
         # keeps padded positions at a zero (untrained) vector.
@@ -197,6 +190,7 @@ class EventEmbedding(nn.Module):
         categorical_ids: torch.Tensor,  # (B, L, n_cat) long
         numeric_features: torch.Tensor,  # (B, L, n_num) float
         role_ids: torch.Tensor | None = None,  # (B, L) long, CURRENT catalogue's ids
+        role_table: torch.Tensor | None = None,  # (V_role, role_dim) e(a) from the role encoder
     ) -> torch.Tensor:
         """Return event vectors with a prepended CLS token: ``(B, L+1, d_model)``."""
         bsz, length = activity_ids.shape
@@ -205,10 +199,9 @@ class EventEmbedding(nn.Module):
         # role_ids == activity_ids (same vocab); cross-domain the batch carries role_ids
         # encoded with the eval catalogue, so the channel survives the vocabulary change.
         role_emb = None
-        if self.role_encoder is not None:
-            table = self.role_encoder()  # (V_role, role_dim); reserved rows are zero
+        if role_table is not None:
             ids = role_ids if role_ids is not None else activity_ids
-            role_emb = F.embedding(ids, table)
+            role_emb = F.embedding(ids, role_table)  # reserved rows are zero
 
         # ID-channel dropout: during TRAINING, replace a fraction of REAL activity ids with UNK so
         # the model must predict from the (vocabulary-free) role channel — making the role space
@@ -216,7 +209,7 @@ class EventEmbedding(nn.Module):
         # the ORIGINAL ids above, so dropped positions become exactly the cross-domain input
         # pattern (ID=UNK, role=real). No-op at eval, without a role channel, or when id_dropout=0.
         act_ids = activity_ids
-        if self.training and self.id_dropout > 0.0 and self.role_encoder is not None:
+        if self.training and self.id_dropout > 0.0:  # also without a role channel (id_dropout=1.0 => no ID information at all)
             drop = (torch.rand_like(activity_ids, dtype=torch.float) < self.id_dropout) & (
                 activity_ids != 0
             )
@@ -277,6 +270,5 @@ class EventEmbedding(nn.Module):
             fourier_bands=tuple(model_cfg.get("fourier_bands", (1, 2, 4, 8))),
             time2vec_k=int(model_cfg.get("time2vec_k", 8)),
             role_dim=int(model_cfg.get("role_dim", 0)),
-            role_layers=int(model_cfg.get("role_layers", 2)),
             id_dropout=float(model_cfg.get("id_dropout", 0.0)),
         )

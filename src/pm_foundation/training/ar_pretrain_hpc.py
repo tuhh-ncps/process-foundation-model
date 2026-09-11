@@ -41,7 +41,7 @@ from pm_foundation.data.labeling import (
     sepsis_admission_outcome,
 )
 from pm_foundation.data.preprocessing import fit_feature_spec
-from pm_foundation.data.roles import fit_role_graph
+from pm_foundation.data.roles import apply_aggregator, fit_role_graph
 from pm_foundation.data.samplers import LengthBucketedSampler
 from pm_foundation.data.schema import EventLog, Trace
 from pm_foundation.experiments import RunRegistry, plot_learning_curve, write_learning_curve
@@ -111,7 +111,11 @@ def pretrain_autoregressive_ddp(config: dict[str, Any]) -> Path:
     # contract as fit_feature_spec — never traces that will be predicted/scored).
     role_graph = None
     if int(config["model"].get("role_dim", 0)) > 0:
-        role_graph = fit_role_graph(train_traces, feature_spec.activity_vocab)
+        # aggregator (mean|sum) is a MODEL property, persisted in the manifest so eval reads it back
+        role_graph = apply_aggregator(
+            fit_role_graph(train_traces, feature_spec.activity_vocab),
+            str(config["model"].get("aggregator", "mean")),
+        )
         data_summary["role_corpus"] = {"split": "train", "n_traces": len(train_traces)}
 
     # Only rank 0 owns the run dir + artifacts (else ranks race / mint different run ids).
@@ -234,9 +238,18 @@ def pretrain_autoregressive_ddp(config: dict[str, Any]) -> Path:
     # BEFORE set_role_graph so the new corpus's fingerprints/DFG install on the transferred encoder.
     init_from = config.get("init_from")
     if init_from:
-        src = torch.load(
-            registry.run_dir("backbone", init_from) / "backbone.pt", map_location="cpu"
-        )
+        from pm_foundation.models.foundation_model import remap_legacy_role_keys
+
+        src_dir = registry.run_dir("backbone", init_from)
+        src = remap_legacy_role_keys(torch.load(src_dir / "backbone.pt", map_location="cpu"))
+        role_ckpt = src_dir / "role_encoder.pt"  # true-split runs store the role encoder here
+        if role_ckpt.exists():
+            src.update(
+                {
+                    f"role_encoder.{k}": v
+                    for k, v in torch.load(role_ckpt, map_location="cpu").items()
+                }
+            )
         own = module.backbone.state_dict()
         transfer = {k: v for k, v in src.items() if k in own and own[k].shape == v.shape}
         reinit = sorted(k for k in own if k not in transfer)
@@ -247,6 +260,23 @@ def pretrain_autoregressive_ddp(config: dict[str, Any]) -> Path:
                 f"tensors; reinitialized for this corpus: {reinit}",
                 flush=True,
             )
+
+    # Phase-2 of the frozen cascade: load a Phase-1 role embedding (from a `role_encoder` run) and
+    # optionally FREEZE it, so the backbone only reads e(a). Params are vocab-free (load by name);
+    # buffers are reinstalled by set_role_graph below.
+    role_init = config.get("role_init_from")
+    role_enc = getattr(module.backbone, "role_encoder", None)
+    if role_init and role_enc is not None:
+        rsd = torch.load(registry.run_dir("role_encoder", role_init) / "role_encoder.pt", map_location="cpu")
+        pkeys = {n for n, _ in role_enc.named_parameters()}
+        role_enc.load_state_dict({k: v for k, v in rsd.items() if k in pkeys}, strict=False)
+        if is_main:
+            print(f"[ar] role_init_from {role_init}: loaded {len(pkeys)} role-embedding params", flush=True)
+    if bool(config.get("freeze_role", False)) and role_enc is not None:
+        for p in role_enc.parameters():
+            p.requires_grad_(False)
+        if is_main:
+            print("[ar] role encoder FROZEN (requires_grad=False)", flush=True)
 
     if role_graph is not None:  # install on student + JEPA teacher copy
         module.set_role_graph(role_graph)
@@ -273,7 +303,16 @@ def pretrain_autoregressive_ddp(config: dict[str, Any]) -> Path:
     if not (is_main and ctx is not None):
         return run_dir  # non-main ranks: DDP work done in fit(); rank 0 owns the artifacts
 
-    torch.save(module.backbone.state_dict(), run_dir / "backbone.pt")
+    # True split: backbone.pt = swappable transformer + embedding; the vocabulary-free role
+    # encoder is its own reusable role_encoder.pt (backbone/role-encoder mix-and-match at load).
+    full_sd = module.backbone.state_dict()
+    role_sd = {
+        k[len("role_encoder.") :]: v for k, v in full_sd.items() if k.startswith("role_encoder.")
+    }
+    backbone_sd = {k: v for k, v in full_sd.items() if not k.startswith("role_encoder.")}
+    torch.save(backbone_sd, run_dir / "backbone.pt")
+    if role_sd:
+        torch.save(role_sd, run_dir / "role_encoder.pt")
     ar_heads: dict[str, Any] = {
         # With candidate matching the fixed linear head does not exist; the matching
         # query projection is saved instead (the candidate bank lives in backbone.pt).

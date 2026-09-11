@@ -203,15 +203,22 @@ class Splits:
 # ---------------------------------------------------------------------------
 # Trace construction
 # ---------------------------------------------------------------------------
-def build_traces(log: EventLog, min_trace_len: int = 1) -> EventLog:
-    """Defensively sort events per trace and drop traces shorter than ``min_trace_len``.
+def build_traces(
+    log: EventLog, min_trace_len: int = 1, max_trace_len: int | None = None
+) -> EventLog:
+    """Defensively sort events per trace and drop traces shorter than ``min_trace_len``
+    or (when set) longer than ``max_trace_len``.
 
-    Readers already group + sort, so this mainly enforces invariants and applies an
-    optional minimum-length filter (no-op when ``min_trace_len <= 1``).
+    Readers already group + sort, so this mainly enforces invariants and applies the
+    optional length filters (no-op when ``min_trace_len <= 1`` / ``max_trace_len`` unset).
+    ``max_trace_len`` is the leak-free way to bound sequence length for evaluation: cases
+    that would need truncation are excluded instead of windowed.
     """
     traces: list[Trace] = []
     for trace in log.traces:
         if len(trace) < min_trace_len:
+            continue
+        if max_trace_len and len(trace) > max_trace_len:
             continue
         events = sorted(trace.events, key=lambda e: e.timestamp)
         traces.append(
@@ -394,7 +401,7 @@ def _time_features(events: list[Event], spec: FeatureSpec) -> torch.Tensor:
                 1.0 if ts.weekday() >= 5 else 0.0,  # is_weekend
                 1.0 if 9 <= ts.hour < 17 else 0.0,  # is_business_hour
                 math.log1p(i),  # log1p(position)
-                i / (n - 1) if n > 1 else 0.0,  # position_ratio in [0, 1]
+                0.0,  # position_ratio DISABLED (it encoded the case's total length -> target leak); slot kept
             ],
             dtype=torch.float32,
         )
@@ -408,9 +415,14 @@ def _attr_value(attr: AttributeSpec, trace: Trace, event: Event) -> object:
 
 
 def _truncate(events: list[Event], max_seq_len: int) -> list[Event]:
-    """Keep the most recent ``max_seq_len`` events (no-op if shorter / unset)."""
+    """Keep the FIRST ``max_seq_len`` events (no-op if shorter / unset).
+
+    Start-anchored on purpose: an end-anchored window (the previous behaviour) makes the
+    within-window position a function of the case's total length and thus of the future
+    (window position = 64 - remaining count). Evaluation additionally excludes cases longer
+    than the window (``max_trace_len``), so there every window is the complete case."""
     if max_seq_len and len(events) > max_seq_len:
-        return events[-max_seq_len:]
+        return events[:max_seq_len]
     return events
 
 
@@ -426,7 +438,7 @@ def event_targets(
     - ``next_activity`` ``(L,)`` long: the next event's activity id; the final
       position (no successor) is ``NEXT_ACTIVITY_IGNORE_INDEX``.
     - ``remaining_time`` ``(L,)`` float: ``log1p`` seconds from each event to the
-      trace's last (kept) event.
+      trace's ORIGINAL last event (targets use the full case even when inputs are windowed).
     - ``next_time`` ``(L,)`` float: ``log1p`` seconds from each event to the *next*
       event; the final position (no successor) is ``NaN`` and masked out downstream.
 
@@ -436,24 +448,29 @@ def event_targets(
     (training) vocab, but the target must be the EVAL dataset's real activity so accuracy
     reflects true predictive performance instead of collapsing to ``UNK``.
     """
-    events = _truncate(trace.events, spec.max_seq_len)
+    events = _truncate(trace.events, spec.max_seq_len)  # INPUT window: the first max_seq_len events
     length = len(events)
+    full = trace.events  # TARGETS come from the complete case: true next event, true case end.
+    # (Targets may look past the window; inputs never do. With evaluation excluding cases longer
+    # than the window, full == events there; this matters for pretraining on long cases.)
 
     tgt_vocab = target_activity_vocab if target_activity_vocab is not None else spec.activity_vocab
     next_activity = torch.full((length,), NEXT_ACTIVITY_IGNORE_INDEX, dtype=torch.long)
-    for i in range(length - 1):
-        next_activity[i] = tgt_vocab.encode(events[i + 1].activity)
+    for i in range(length):
+        if i + 1 < len(full):
+            next_activity[i] = tgt_vocab.encode(full[i + 1].activity)
 
-    last_ts = events[-1].timestamp
+    last_ts = full[-1].timestamp  # original case end
     remaining_time = torch.tensor(
         [math.log1p(max((last_ts - e.timestamp).total_seconds(), 0.0)) for e in events],
         dtype=torch.float32,
     )
 
     next_time = torch.full((length,), float("nan"), dtype=torch.float32)
-    for i in range(length - 1):
-        gap = max((events[i + 1].timestamp - events[i].timestamp).total_seconds(), 0.0)
-        next_time[i] = math.log1p(gap)
+    for i in range(length):
+        if i + 1 < len(full):
+            gap = max((full[i + 1].timestamp - events[i].timestamp).total_seconds(), 0.0)
+            next_time[i] = math.log1p(gap)
 
     return {
         "next_activity": next_activity,

@@ -1,0 +1,44 @@
+# Phase-1 of the frozen cascade: train a role embedding on the experiment's TRAINING corpus.
+# Per candidate, override the model block:
+#   raw15 : role.model.role_arch=raw role.model.role_dim=15
+#   mlp15 : role.model.role_arch=mlp
+#   gin5  : role.model.role_arch=gin role.model.role_feature_subset=five
+#   gin15 : (defaults below)
+# val_logs (Sepsis, Receipt) are used for Phase-1 composite/checkpoint selection only.
+name: role-frozen
+strip_to_control_flow: true
+min_trace_len: 2
+split: [0.70, 0.15, 0.15]
+
+train_logs:
+  - path: ${paths.data_dir}/BPI12.xes          # bpi12_solo
+  - path: ${paths.data_dir}/BPI18.xes
+    max_traces: 3000
+  - path: ${paths.data_dir}/BPI19.xes
+    max_traces: 3000
+  - path: ${paths.data_dir}/RoadTraffic.xes
+    max_traces: 3000
+  - path: ${paths.data_dir}/HospitalBilling.xes
+    max_traces: 3000
+  - path: ${paths.data_dir}/BPI11.xes
+    max_traces: 3000
+val_logs:                        # Phase-1 checkpoint selection only; NOT held-out evaluation logs
+  - path: ${paths.data_dir}/SepsisCases_Event_Log.xes
+  - path: ${paths.data_dir}/berti_receipt.xes
+
+model:
+  aggregator: sum
+  role_arch: gin                # raw | mlp | gin  (override per candidate)
+  role_dim: 64                  # raw candidate: set to 15
+  role_layers: 1                # depth-1 (deeper over-smooths)
+  role_feature_subset: all      # gin5 candidate: five
+
+objective:
+  w_contrastive: 0.5
+  w_supcon: 0.5
+  w_ce: 1.0
+  tau_supcon: 0.2
+optim:
+  lr: 1.0e-3
+  epochs: 120
+  ema: 0.35

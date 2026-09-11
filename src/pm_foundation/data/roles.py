@@ -26,12 +26,20 @@ import torch
 from pm_foundation.data.schema import Trace
 from pm_foundation.data.vocabulary import RESERVED_TOKENS, Vocabulary
 
-# Fingerprint layout (rank-normalized to [0,1] except the binary in_cycle):
-#   graph    (6): in_degree, out_degree, pagerank, betweenness, in_cycle, self_loop_p
-#   time     (6): median/std/p90 of log1p in-gap; median/std/p90 of log1p out-gap
-#   behavior (8): p_start, p_terminal, support, pred_entropy, succ_entropy,
-#                 mean_pos, std_pos, rework_p
-N_ROLE_FEATURES = 20
+# Fingerprint layout. 20 features are computed internally; 5 are PRUNED as dead weight for role
+# (permutation importance found in_degree, out_degree, in_cycle, and the two p90 gap-tails contribute
+# ~0 — a 5-seed A/B confirmed role-quality holds without them). The returned feats keeps 15:
+#   graph    (3): pagerank, betweenness, self_loop_p          [in_degree, out_degree, in_cycle dropped]
+#   time     (4): in_gap median/std, out_gap median/std       [both p90 tails dropped]
+#   behavior (8): p_start, p_terminal, support, pred_entropy, succ_entropy, mean_pos, std_pos, rework_p
+# All rank-normalized to [0,1]. `raw[i, k]` below indexes the RAW 20-wide array; `_KEEP_COLS` maps it
+# to the returned 15-wide feats.
+_N_RAW_FEATURES = 20
+_KEEP_COLS = [2, 3, 5, 6, 7, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19]  # drops raw cols 0,1,4,8,11
+_KEEP_IDX = torch.tensor(_KEEP_COLS)
+N_ROLE_FEATURES = len(_KEEP_COLS)  # 15 — the encoder's input width
+P_START_COL = _KEEP_COLS.index(12)  # p_start in the PRUNED feats (7)
+P_TERMINAL_COL = _KEEP_COLS.index(13)  # p_terminal in the PRUNED feats (8)
 # Name channel: hashed character trigrams (stable crc32, NOT python hash), padded/truncated.
 NAME_TRIGRAM_SLOTS = 24
 NAME_HASH_BUCKETS = 4096  # bucket 0 is reserved for padding
@@ -252,8 +260,8 @@ def fit_role_graph(traces: list[Trace], vocab: Vocabulary) -> dict[str, torch.Te
     pr = _pagerank(p_sub)
     cyc = _in_cycle(succ, n_real)
 
-    # --- assemble raw features per real activity -------------------------------
-    raw = torch.zeros(n_real, N_ROLE_FEATURES)
+    # --- assemble raw features per real activity (full 20-wide; pruned to 15 on return) --------
+    raw = torch.zeros(n_real, _N_RAW_FEATURES)
     for a in real:
         i = row_of[a]
         n_occ = max(occurrences[a], 1)
@@ -291,8 +299,8 @@ def fit_role_graph(traces: list[Trace], vocab: Vocabulary) -> dict[str, torch.Te
     # identical whether fitted alone or inside a corpus. A single-log graph is one component -> no-op.
     for comp in _weak_components(succ, n_real):
         idx = torch.tensor(comp, dtype=torch.long)
-        for col in range(N_ROLE_FEATURES):
-            if col == 4:  # in_cycle is binary — keep raw
+        for col in range(_N_RAW_FEATURES):
+            if col == 4:  # in_cycle is binary — keep raw (dropped from output anyway)
                 continue
             # a lone activity has no population to rank against -> neutral 0.5, not an extreme
             raw[idx, col] = (
@@ -302,7 +310,7 @@ def fit_role_graph(traces: list[Trace], vocab: Vocabulary) -> dict[str, torch.Te
     name_ids = torch.zeros(vsize, NAME_TRIGRAM_SLOTS, dtype=torch.long)
     real_mask = torch.zeros(vsize, dtype=torch.bool)
     for a in real:
-        feats[a] = raw[row_of[a]]
+        feats[a] = raw[row_of[a]][_KEEP_IDX]  # prune the dead raw columns
         name_ids[a] = torch.tensor(name_trigram_ids(tokens[a]), dtype=torch.long)
         real_mask[a] = True
 
@@ -313,3 +321,22 @@ def fit_role_graph(traces: list[Trace], vocab: Vocabulary) -> dict[str, torch.Te
         "name_ids": name_ids,
         "real_mask": real_mask,
     }
+
+
+def apply_aggregator(graph: dict[str, torch.Tensor], aggregator: str = "mean") -> dict[str, torch.Tensor]:
+    """Select the GIN neighbour aggregation for a role graph (see :class:`DirectedGinLayer`).
+
+    ``mean`` (default) keeps ``fit_role_graph``'s ROW-NORMALIZED transition matrices, so ``adj @ h``
+    is a probability-weighted mean (scale-invariant across logs). ``sum`` binarizes the adjacency so
+    ``adj @ h`` is a true-GIN neighbour SUM (WL-expressive, Xu et al. 2019). The encoder learns to
+    whichever scale it trains on, so the SAME aggregator must be used at pretrain and inference —
+    keep it a model-config property (persisted in the manifest) so eval reads it back automatically.
+    """
+    if aggregator == "mean":
+        return graph
+    if aggregator != "sum":
+        raise ValueError(f"unknown aggregator {aggregator!r} (expected 'mean' or 'sum')")
+    g = dict(graph)
+    g["adj_in"] = (g["adj_in"] > 0).float()
+    g["adj_out"] = (g["adj_out"] > 0).float()
+    return g

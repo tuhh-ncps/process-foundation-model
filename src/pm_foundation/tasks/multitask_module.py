@@ -68,12 +68,18 @@ class MultiTaskLitModule(L.LightningModule):
         optimizer_cfg: dict[str, Any] | None = None,
         feature_norm: bool = False,
         d_model: int | None = None,
+        finetune_role: bool = False,
     ) -> None:
         super().__init__()
         self.backbone = backbone
         self.heads = nn.ModuleDict(heads)
         self.head_weights = head_weights or {name: 1.0 for name in heads}
         self.freeze_backbone = freeze_backbone
+        # Partial fine-tuning: with ``freeze_backbone=True`` and ``finetune_role=True`` the
+        # transformer (embedding + encoder) stays frozen and in eval mode, but the role encoder
+        # that produces the table e(a) is trained together with the heads (at ``backbone_lr``).
+        # Gradients flow through the frozen transformer to the role encoder; nothing else moves.
+        self.finetune_role = bool(finetune_role) and getattr(backbone, "role_encoder", None) is not None
         self.optimizer_cfg = optimizer_cfg or {}
         # Optional per-DIMENSION standardization (BatchNorm) of the frozen features before every
         # head — a better-conditioned input lets a linear probe converge from fewer labels. NOT
@@ -96,13 +102,21 @@ class MultiTaskLitModule(L.LightningModule):
         if self.freeze_backbone:
             for p in self.backbone.parameters():
                 p.requires_grad_(False)
+            if self.finetune_role:
+                for p in self.backbone.role_encoder.parameters():
+                    p.requires_grad_(True)
 
     # -- forward / targets -------------------------------------------------
     def _backbone_out(self, batch: dict[str, torch.Tensor]) -> Any:
         if self.freeze_backbone:
             self.backbone.eval()
-            with torch.no_grad():
+            if self.finetune_role:
+                # frozen transformer (eval mode, no trainable params) but WITH grad, so the loss
+                # reaches the trainable role encoder through it
                 out = self.backbone.forward_batch(batch)
+            else:
+                with torch.no_grad():
+                    out = self.backbone.forward_batch(batch)
         else:
             out = self.backbone.forward_batch(batch)
         if self.feat_norm_events is not None:  # applied OUTSIDE no_grad so the BN params get grad
@@ -176,6 +190,9 @@ class MultiTaskLitModule(L.LightningModule):
         if not self.freeze_backbone:
             backbone_lr = float(cfg.get("backbone_lr", head_lr * 0.1))
             groups.append({"params": list(self.backbone.parameters()), "lr": backbone_lr})
+        elif self.finetune_role:
+            backbone_lr = float(cfg.get("backbone_lr", head_lr * 0.1))
+            groups.append({"params": list(self.backbone.role_encoder.parameters()), "lr": backbone_lr})
         optimizer = torch.optim.AdamW(groups, weight_decay=weight_decay)
 
         total_steps = max(1, int(self.trainer.estimated_stepping_batches))

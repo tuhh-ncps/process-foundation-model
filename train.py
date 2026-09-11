@@ -38,6 +38,7 @@ from pm_foundation.training.ar_pretrain_hpc import (
     pretrain_autoregressive_ddp,
     world_size,
 )
+from pm_foundation.training.role_pretrain import train_role_encoder
 
 
 def _slurm_int(name: str, default: int) -> int:
@@ -135,6 +136,9 @@ def _pretrain(cfg: DictConfig) -> str:
     run_cfg["name"] = str(cfg.name)
     run_cfg["output_dir"] = str(cfg.output_dir)
     run_cfg["init_from"] = cfg.get("init_from")  # continue-pretraining: warm-start from a prior run
+    # Frozen cascade (Phase 2): load a Phase-1 role embedding (a `role_encoder` run) and freeze it.
+    run_cfg["role_init_from"] = cfg.get("role_init_from")
+    run_cfg["freeze_role"] = bool(cfg.get("freeze_role", False))
     run_cfg["logger"] = _build_logger(cfg)  # attached to the Trainer inside the flow (rank-0 safe)
 
     if global_rank() == 0:
@@ -144,6 +148,18 @@ def _pretrain(cfg: DictConfig) -> str:
             f"strategy={run_cfg['trainer'].get('strategy', 'auto')}"
         )
     return str(pretrain_autoregressive_ddp(run_cfg))
+
+
+def _role_pretrain(cfg: DictConfig) -> str:
+    """Train the role encoder STANDALONE (no backbone), with held-out quality control."""
+    if cfg.get("role") is None:
+        raise ValueError("task=role_pretrain requires a `role` config, e.g. role=default")
+    role_cfg: dict = OmegaConf.to_container(cfg.role, resolve=True)
+    role_cfg.setdefault("output_dir", str(cfg.output_dir))
+    role_cfg.setdefault("seed", int(cfg.seed))
+    print(f"[{role_cfg.get('name', 'role')}] standalone role-encoder pretrain — "
+          f"train {[s.get('name') or s['path'].split('/')[-1] for s in role_cfg['train_logs']]}")
+    return str(train_role_encoder(role_cfg))
 
 
 def _evaluate(cfg: DictConfig) -> str:
@@ -188,8 +204,12 @@ def main(cfg: DictConfig) -> float:
         out = _pretrain(cfg)
     elif task == "evaluate":
         out = _evaluate(cfg)
+    elif task == "role_pretrain":
+        out = _role_pretrain(cfg)
     else:
-        raise ValueError(f"unknown task={task!r} (expected 'pretrain' or 'evaluate')")
+        raise ValueError(
+            f"unknown task={task!r} (expected 'pretrain', 'evaluate', or 'role_pretrain')"
+        )
 
     if global_rank() == 0:
         print(f"[{cfg.name}] done -> {out}")

@@ -1,0 +1,17 @@
+# Role-embedding ablation candidate: GIN-5 (directed sum-GIN, depth-1, 5 non-positional feats).
+# Structural-only e(a); recovers role/structure from the graph despite no positional input.
+d_model: 256
+n_layers: 6
+n_heads: 8
+ffn_dim: 1024
+dropout: 0.1
+max_seq_len: 64
+activity_embedding_dim: 128
+attribute_embedding_dim: 32
+position: rope
+id_dropout: 0.5
+aggregator: sum
+role_arch: gin
+role_dim: 64
+role_layers: 1
+role_feature_subset: five     # self_loop_p, in_gap_median, out_gap_median, support, rework_p
