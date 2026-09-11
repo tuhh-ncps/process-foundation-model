@@ -241,7 +241,14 @@ python figures/feats_importance_plot.py   # fingerprint non-redundancy
 Output lands next to the scripts and is gitignored; the committed copies are in `assets/`.
 
 This is the cheapest way to check our numbers: regenerate a figure and compare it against the one in
-`assets/`. If they differ, the data in `results/` does not support the claim.
+`assets/`. Those committed copies were produced by these exact scripts in the environment `uv.lock`
+pins, so inside that environment they come out byte-identical. **Across matplotlib versions they will
+not** — canvas dimensions shift by a few pixels — so compare what the figure *says*, not its
+checksum. The numbers themselves come from `results/` and are version-independent.
+
+Three of the eight images in `assets/` are regenerated this way (`frozen_agg_all`, `sota_wall`,
+`feats_importance`). The architecture diagrams and the role-space t-SNE are built from the LaTeX and
+TikZ sources under `docs/`, which is not published.
 
 > The role-space t-SNE (`gin15_seen_unseen.py`) is **not** in `figures/`, because it needs the raw
 > logs and the Phase 1a encoder rather than a results CSV. It stays with the LaTeX sources under

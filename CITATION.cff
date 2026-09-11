@@ -1,0 +1,41 @@
+cff-version: 1.2.0
+message: "If you use this software or its results, please cite the paper below."
+title: "PFM: A Process Foundation Model with Reusable Process Representations for Predictive Process Monitoring"
+abstract: >-
+  Reference implementation of PFM, a process foundation model that learns a reusable event-state
+  representation transferable across event logs and prediction tasks. Activities are represented by
+  vocabulary-independent role embeddings derived from structural, temporal and positional features of
+  directly-follows graphs, so a previously unseen log needs no update to the pretrained role encoder
+  or causal transformer backbone; new prediction tasks are added as independently fitted lightweight
+  heads.
+type: software
+authors:
+  - family-names: Tran
+    given-names: Trinh
+    affiliation: Hamburg University of Technology (TUHH)
+    email: trinh.tran@tuhh.de
+  - family-names: Wölker
+    given-names: Yannick
+    affiliation: Hamburg University of Technology (TUHH)
+  - family-names: Landsiedel
+    given-names: Olaf
+    affiliation: Hamburg University of Technology (TUHH)
+keywords:
+  - process mining
+  - predictive process monitoring
+  - foundation model
+  - representation learning
+  - transfer learning
+repository-code: "https://github.com/tuhh-ncps/process-foundation-model"
+preferred-citation:
+  type: article
+  title: "PFM: A Process Foundation Model with Reusable Process Representations for Predictive Process Monitoring"
+  authors:
+    - family-names: Tran
+      given-names: Trinh
+    - family-names: Wölker
+      given-names: Yannick
+    - family-names: Landsiedel
+      given-names: Olaf
+  year: 2026
+  notes: "Manuscript submitted to ACM"

@@ -9,6 +9,7 @@ Representations for Predictive Process Monitoring"* (Tran, Wölker, Landsiedel �
 | **Understand the codebase** | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | **Result data behind every number** | [`results/`](results/) |
 | **Cluster job scripts that produced them** | [`hpc/`](hpc/) |
+| **Datasets, baselines, licences** | [REFERENCES.md](REFERENCES.md) |
 
 ---
 
@@ -230,11 +231,14 @@ Full instructions, including how to get each log and how to reproduce every tabl
 
 ```bibtex
 @article{tran2026pfm,
-  title  = {{PFM}: A Process Foundation Model with Reusable Process Representations
-            for Predictive Process Monitoring},
-  author = {Tran, Trinh and W{\"o}lker, Yannick and Landsiedel, Olaf},
-  year   = {2026}
+  title   = {{PFM}: A Process Foundation Model with Reusable Process Representations
+             for Predictive Process Monitoring},
+  author  = {Tran, Trinh and W{\"o}lker, Yannick and Landsiedel, Olaf},
+  journal = {Manuscript submitted to ACM},
+  year    = {2026}
 }
 ```
 
-Licensed under the terms in [LICENSE](LICENSE).
+If you use the event logs, **cite the log authors too** — see
+[REFERENCES.md](REFERENCES.md#event-logs). The code is licensed under [LICENSE](LICENSE); that
+covers the code only, not the datasets, which carry their own terms.

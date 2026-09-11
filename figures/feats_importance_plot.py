@@ -23,7 +23,8 @@ import os
 
 import numpy as np
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
 import matplotlib
 
 matplotlib.use("Agg")
@@ -76,8 +77,8 @@ ax.legend(handles=handles, loc="lower right", fontsize=8.5, frameon=True, framea
 fig.tight_layout()
 fig.patch.set_alpha(0.0)
 ax.patch.set_alpha(0.0)
-fig.savefig("feats_importance.pdf", bbox_inches="tight", transparent=True)
-fig.savefig("feats_importance.png", dpi=200, bbox_inches="tight", transparent=True)
+fig.savefig(os.path.join(HERE, "feats_importance.pdf"), bbox_inches="tight", transparent=True)
+fig.savefig(os.path.join(HERE, "feats_importance.png"), dpi=200, bbox_inches="tight", transparent=True)
 
 print("%-20s %-24s %8s %8s" % ("feature", "family", "unique", "mean|r|"))
 for j in order[::-1]:
