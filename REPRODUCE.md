@@ -203,20 +203,26 @@ the ablation variants `mlp15 raw15 gin11 gin0 latent0 norole` and seed replicas 
 
 ## 7. Figures and tables
 
-Figure scripts live in `docs/diagrams/` and read from `results/`.
+Every script in `figures/` reads only from `results/`, so these run on a fresh clone with **no GPU
+and no event logs**. Run them from the repository root:
 
 ```bash
-cd docs/diagrams
-python frozen_agg_merged.py        # label-efficiency panels
-python sota_wall_plot.py           # baseline comparison + adaptation cost
-python gin15_seen_unseen.py        # role-space t-SNE (delete gin15_xy.npz to recompute)
-python make_table_ablation_v2.py   # ablation tables
-python make_datasets_table.py      # dataset table
-python feats_importance_plot.py    # fingerprint non-redundancy
+python figures/frozen_agg_merged.py       # Figure 3, label-efficiency panels
+python figures/sota_agg_plot.py           # writes results/sota_agg_data.csv, then
+python figures/sota_wall_plot.py          # Figure 4, baselines + adaptation cost
+python figures/make_table_ablation_v2.py  # Table 6 and the seed-replication table
+python figures/make_datasets_table.py     # Table 2
+python figures/feats_importance_plot.py   # fingerprint non-redundancy
 ```
 
-> `docs/` is excluded from version control by `.gitignore`, since it holds the LaTeX sources. The
-> figures the README uses are committed under `assets/`, and the data they read is in `results/`.
+Output lands next to the scripts and is gitignored; the committed copies are in `assets/`.
+
+This is the cheapest way to check our numbers: regenerate a figure and compare it against the one in
+`assets/`. If they differ, the data in `results/` does not support the claim.
+
+> The role-space t-SNE (`gin15_seen_unseen.py`) is **not** in `figures/`, because it needs the raw
+> logs and the Phase 1a encoder rather than a results CSV. It stays with the LaTeX sources under
+> `docs/`, which `.gitignore` excludes.
 
 ## 8. Which command produced which result
 
