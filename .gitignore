@@ -10,9 +10,10 @@
 
 # Not published to GitHub (kept on disk locally, not in the repo):
 #   docs/  = paper artifacts (figures, LaTeX, mockups) — not the training code
-#   slurm/ = cluster-specific sbatch scripts (carry account/partition/user specifics)
+# slurm/ IS tracked: hpc/submit/*.py invoke slurm/ncps/run.sbatch by that exact path, so excluding
+# it left every submitter broken on a fresh clone. The account/partition lines are site-specific and
+# meant to be edited.
 /docs/
-/slurm/
 
 # Python / tooling
 __pycache__/

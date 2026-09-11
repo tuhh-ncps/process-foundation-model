@@ -15,7 +15,7 @@ record rather than as maintained code.
 | `collect/` | Result collectors that walk `outputs/label_efficiency/*/manifest.json` and emit one CSV |
 | `bench/` | Wall-clock and feature-importance benchmarks built on cached frozen features |
 | `analysis/` | Ad-hoc one-off checks written during the work; unmaintained |
-| `slurm/` | The sbatch runners. The repo's top-level `slurm/` is gitignored, so they are duplicated here |
+
 
 ## How they were invoked
 
@@ -38,7 +38,7 @@ python hpc/collect/collect_v2.py > results.csv
 
 `bench/bench_feat_importance.py` imports `bench_cached_pfm`, so those two must stay together.
 
-The sbatch runners take the hydra overrides through the `ARGS` environment variable and a
+The sbatch runners (now at `slurm/ncps/`, the path the submitters expect) take the hydra overrides through the `ARGS` environment variable and a
 `USE_GPU=1` flag, for example:
 
 ```bash

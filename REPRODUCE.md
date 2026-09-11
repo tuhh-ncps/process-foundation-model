@@ -32,12 +32,12 @@ hard-coded.
 
 ### On a cluster
 
-`hpc/slurm/run.sbatch` runs the same entrypoint inside Apptainer. It reads Hydra overrides from the
+`slurm/ncps/run.sbatch` runs the same entrypoint inside Apptainer. It reads Hydra overrides from the
 `ARGS` environment variable:
 
 ```bash
 USE_GPU=1 ARGS="task=evaluate evaluate=label_efficiency ..." \
-  sbatch --gres=gpu:1 --cpus-per-task=4 --export=ALL hpc/slurm/run.sbatch
+  sbatch --gres=gpu:1 --cpus-per-task=4 --export=ALL slurm/ncps/run.sbatch
 ```
 
 The scripts in `hpc/` expect to be invoked **from the repository root**, because their paths are
