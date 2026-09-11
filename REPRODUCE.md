@@ -1,0 +1,275 @@
+# Reproducing the experiments
+
+Every number, table and figure in the paper comes from this repository. This guide goes from a fresh
+clone to regenerated figures.
+
+**Contents:** [Setup](#1-setup) · [Data](#2-data) · [Phase 1a](#3-phase-1a--role-encoder) ·
+[Phase 1b](#4-phase-1b--backbone) · [Evaluation](#5-evaluation-grids) ·
+[Collecting results](#6-collecting-results) · [Figures](#7-figures-and-tables) ·
+[Paper map](#8-which-command-produced-which-result) · [Costs](#9-compute-cost) ·
+[Deviations](#known-deviations)
+
+---
+
+## 1. Setup
+
+```bash
+git clone <this repo> && cd hpc_training
+uv sync                     # or: python -m venv .venv && pip install -e .
+```
+
+Python 3.11, PyTorch 2.x, Lightning 2.x. A GPU is required for pretraining; the downstream probes run
+on CPU but slowly.
+
+Everything is driven by one Hydra entrypoint:
+
+```bash
+python train.py task=<pretrain|role_pretrain|evaluate> [overrides...]
+```
+
+Paths come from `configs/paths/default.yaml` and honour `DATA_DIR` and `OUTPUT_DIR`. Nothing is
+hard-coded.
+
+### On a cluster
+
+`hpc/slurm/run.sbatch` runs the same entrypoint inside Apptainer. It reads Hydra overrides from the
+`ARGS` environment variable:
+
+```bash
+USE_GPU=1 ARGS="task=evaluate evaluate=label_efficiency ..." \
+  sbatch --gres=gpu:1 --cpus-per-task=4 --export=ALL hpc/slurm/run.sbatch
+```
+
+The scripts in `hpc/` expect to be invoked **from the repository root**, because their paths are
+relative to the working directory rather than to the script. See [`hpc/README.md`](hpc/README.md).
+
+---
+
+## 2. Data
+
+Place logs under `data/raw/`. Ten of the eleven are public.
+
+| Log | File | Source |
+|---|---|---|
+| BPI11 | `BPI11.xes` | 4TU, "Real-life event logs — Hospital log" |
+| BPI12 | `BPI12.xes` | 4TU, BPI Challenge 2012 |
+| BPI13 | `BPI13.xes` | 4TU, BPI Challenge 2013, incidents |
+| BPI17 | `BPI17.xes` | 4TU, BPI Challenge 2017 |
+| BPI18 | `BPI18.xes` | 4TU, BPI Challenge 2018 |
+| BPI19 | `BPI19.xes` | 4TU, BPI Challenge 2019 |
+| BPI20ID | `BPI20ID.xes` | 4TU, BPI Challenge 2020, International Declarations |
+| Road Traffic | `RoadTraffic.xes` | 4TU, Road Traffic Fine Management |
+| Hospital Billing | `HospitalBilling.xes` | 4TU, Hospital Billing |
+| Helpdesk | `helpdesk.csv` | 4TU, Helpdesk |
+| MIMIC | `mimic_transfers.csv` | built from MIMIC-IV v3.1 (credentialed) |
+
+MIMIC is not redistributable. Build it from your own PhysioNet access:
+
+```bash
+python scripts/build_mimic_log.py \
+  --mimic data/raw/mimic-iv-v3.1/physionet.org/files/mimiciv/3.1 \
+  --out   data/raw/mimic_transfers.csv
+```
+
+Each hospital admission becomes a trace of care-unit transfers, with an outcome terminal appended at
+discharge. The paper evaluates a fixed subset of 5,000 admissions.
+
+Verify your copies match ours:
+
+```bash
+python scripts/log_stats.py            # overwrites results/log_stats.csv
+git diff --stat results/log_stats.csv  # empty output means your logs match ours exactly
+```
+
+---
+
+## 3. Phase 1a — role encoder
+
+Trains the vocabulary-free activity encoder on its own, selecting the checkpoint on **held-out** logs
+(Sepsis and Receipt) that are never trained on.
+
+```bash
+python train.py task=role_pretrain role=default trainer=local
+```
+
+120 epochs, Adam at 1e-3, loss weights `(w_v, w_s, w_c) = (0.5, 0.5, 1.0)`, `τ_s = 0.2`. Writes
+`outputs/role_encoders/<run_id>/role_encoder.pt`.
+
+The paper's encoder is `role-encoder-20260906-151732-role-frozen-bd3b8c`.
+
+## 4. Phase 1b — backbone
+
+Pretrains the causal backbone on the six-log corpus, on top of a frozen Phase 1a encoder.
+
+```bash
+python train.py task=pretrain \
+  model=role_gin15 \
+  data=multi ++data.datasets=[bpi12_solo,bpi18,bpi19,road_traffic,hospital_billing,bpi11] \
+  freeze_role=true model.id_dropout=1.0 \
+  ar.time_weight=1.0 ar.remaining_time_weight=1.0 ar.jepa_weight=1.0 \
+  role_init_from=<phase-1a-run-id> tag=-v2-gin15
+```
+
+`model.id_dropout=1.0` is what makes the model vocabulary-free: activity IDs are dropped with
+probability 1, so only role embeddings and time carry information. 15 epochs, AdamW at 5e-4, weight
+decay 0.01, batch 96, gradient clipping 1.0.
+
+All seven ablation variants at once:
+
+```bash
+python hpc/submit/submit_pretrain_v2.py            # gin15 mlp15 raw15 gin11 gin0 latent0 norole
+```
+
+The paper's backbone is `backbone-20260906-153102-multi-none-v2-gin15-17fc3c`.
+
+## 5. Evaluation grids
+
+The main grid: three arms × five held-out logs × eight label budgets × three seeds × seven tasks.
+
+```bash
+python hpc/submit/submit_v2.py main          # PFM, Frozen Random, PFM-FT
+python hpc/submit/submit_v2.py ablation      # the six backbone variants, full budget
+```
+
+A single cell, if you want to run one by hand:
+
+```bash
+python train.py task=evaluate evaluate=label_efficiency model=role_gin15 \
+  ~evaluate.backbones.ar ~evaluate.backbones.random \
+  +evaluate.max_trace_len=64 evaluate.role_corpus=budget \
+  evaluate.probe.max_epochs=100 evaluate.probe.early_stop_patience=10 \
+  evaluate.tasks=[next_activity,next_3_activities,next_5_activities,next_time,remaining_time,remaining_count,future_activity_set] \
+  evaluate.eval_dataset=helpdesk evaluate.eval_log.path=data/raw/helpdesk.csv \
+  +evaluate.backbones.pfm=<backbone-run-id> \
+  evaluate.label_sizes=[0,10,30,100,300,1000,5000,null] evaluate.seeds=[0]
+```
+
+Protocol knobs that matter, all leak-relevant:
+
+| Override | Meaning |
+|---|---|
+| `max_trace_len=64` | cases longer than 64 events are excluded, not truncated |
+| `role_corpus=budget` | the DFG and fingerprints are built **only** from the sampled labelled cases |
+| `label_sizes` | `0` is not zero-shot for MLP heads; exclude it from budget curves |
+| `probe.head_hidden` | `128` gives regression heads an MLP; `0` makes them linear |
+| `finetune=[alias]` | trains that arm end to end (this is PFM-FT) |
+| `finetune_role=[alias]` | trains **only** the role encoder with the head, backbone frozen |
+
+Other grids:
+
+```bash
+python hpc/submit/submit_linhead.py                  # linear regression heads
+python hpc/submit/submit_seeds.py                    # extra pretraining seeds
+python hpc/submit/submit_rft.py                      # role-encoder-only fine-tuning
+python hpc/submit/submit_timing3.py <prev-job-id>    # pinned wall-clock, one job at a time
+python hpc/bench/bench_cached_pfm.py <log>           # cached-feature wall-clock
+python hpc/bench/bench_feat_importance.py <log>      # fingerprint permutation importance
+```
+
+### Baselines
+
+```bash
+python scripts/export_splits.py      # exact split manifests
+python scripts/export_queries.py     # exact test prefixes, so every method scores the same queries
+python hpc/submit/submit_sutran.py   # SuTraN, non-data-aware, equal-weighted, CaLenDiR
+python hpc/submit/submit_fmv2.py     # FM-v2, released 4-expert checkpoint, k chosen on validation
+```
+
+Both baselines are scored on the **same exported prefixes** as PFM, which is what makes the
+comparison fair.
+
+## 6. Collecting results
+
+Collectors walk `outputs/label_efficiency/*/manifest.json`, keep only runs matching the protocol, and
+emit one tidy CSV:
+
+```bash
+python hpc/collect/collect_v2.py      > results/v2_all.csv
+python hpc/collect/collect_linhead.py > results/linhead_all.csv
+```
+
+Columns: `log, arm, task, n_labels, n_train_samples, seed, value, run`. One row per
+(log, arm, task, budget, seed). Read a full-budget number like this:
+
+```python
+import pandas as pd
+d = pd.read_csv("results/v2_all.csv")
+d = d[(d.n_labels.astype(str) == "all") & (d.task == "next_activity")]
+print(d.groupby(["log", "arm"]).value.mean().unstack("arm"))
+```
+
+Arms: `pfm` frozen, `pfm_ft` fine-tuned, `pfm_rft` role encoder only, `random_role` the floor, plus
+the ablation variants `mlp15 raw15 gin11 gin0 latent0 norole` and seed replicas `*_s1 *_s2`.
+
+## 7. Figures and tables
+
+Figure scripts live in `docs/diagrams/` and read from `results/`.
+
+```bash
+cd docs/diagrams
+python frozen_agg_merged.py        # label-efficiency panels
+python sota_wall_plot.py           # baseline comparison + adaptation cost
+python gin15_seen_unseen.py        # role-space t-SNE (delete gin15_xy.npz to recompute)
+python make_table_ablation_v2.py   # ablation tables
+python make_datasets_table.py      # dataset table
+python feats_importance_plot.py    # fingerprint non-redundancy
+```
+
+> `docs/` is excluded from version control by `.gitignore`, since it holds the LaTeX sources. The
+> figures the README uses are committed under `assets/`, and the data they read is in `results/`.
+
+## 8. Which command produced which result
+
+| Paper element | Produced by |
+|---|---|
+| Table 2, dataset statistics | `scripts/log_stats.py` → `make_datasets_table.py` |
+| Table 5, full-budget results | `submit_v2.py main` → `collect_v2.py` |
+| Table 6, component ablation | `submit_v2.py ablation` → `make_table_ablation_v2.py` |
+| Figure 3, label efficiency | `submit_v2.py main` → `frozen_agg_merged.py` |
+| Figure 4a–b, baseline comparison | `submit_sutran.py`, `submit_fmv2.py` → `sota_wall_plot.py` |
+| Figure 4c, adaptation cost | `submit_timing3.py`, `bench_cached_pfm.py` → `sota_wall_plot.py` |
+| Role-space t-SNE | `gin15_seen_unseen.py` |
+| Latent-objective seed replication | `submit_seeds.py`, `submit_seedprobes_remaining.py` |
+
+Run tags in `hpc/README.md` map each submitter to the batch it produced.
+
+## 9. Compute cost
+
+Measured on NVIDIA H200.
+
+| Stage | Cost |
+|---|---|
+| Phase 1a, role encoder | ~20 min |
+| Phase 1b, one backbone | 33–80 min |
+| Main grid, 5 logs × 3 arms × 3 seeds | ~12 GPU-hours, BPI17 dominates |
+| Ablation, 6 variants full budget | ~4 GPU-hours |
+| Adapting one log, two tasks, cached | 0.19–1.52 min |
+
+The full paper is roughly 40 GPU-hours including baselines. Pretraining is **loader-bound**, not
+GPU-bound: MIG slices run as fast as a full H200.
+
+---
+
+## Known deviations
+
+Recorded so results can be checked rather than taken on trust.
+
+**Outcome pretext term.** The released backbone was trained with a fifth loss term, a BPI'12
+application-outcome head at weight 0.3, in addition to the four documented objectives. A control
+backbone without it was pretrained and probed on four held-out logs: differences are within
+pretraining-seed noise, the largest being −0.035 next-activity accuracy on BPI13, with PFM-FT and
+BPI20ID unchanged. The paper reports the released model and discloses the extra term.
+
+**Inert role-contrast term.** The backbone config carries `role_contrast_weight=0.3`, but
+`freeze_role=true` means the role encoder receives no gradient, so the term never contributes.
+
+**Zero-label point.** The `0` budget is not zero-shot for the regression tasks, because an MLP head
+with random initialisation has no meaningful zero-shot behaviour. Exclude it from budget curves.
+
+**Seed variance.** Single-backbone differences of 1–3 percentage points are **not** meaningful. Three
+pretraining seeds on five logs put the spread at roughly ±0.006 on aggregate next-activity accuracy.
+Treat any ablation gap smaller than that as noise, including the latent objective.
+
+**MIMIC variant count.** Table 2's variant count for MIMIC does not reproduce from the current
+`mimic_transfers.csv`; the measured value is 42,673 against a published 42,594. Every other column
+of every other log reproduces exactly.

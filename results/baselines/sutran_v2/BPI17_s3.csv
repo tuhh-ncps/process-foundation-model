@@ -1,0 +1,8 @@
+log,seed,task,n_queries,value
+BPI17,3,next_activity,148388,0.856195
+BPI17,3,next_3_activities,432018,0.754686
+BPI17,3,next_5_activities,698120,0.670402
+BPI17,3,future_activity_set,152770,0.526447
+BPI17,3,next_time,148388,0.626590
+BPI17,3,remaining_time,152770,6.951183
+BPI17,3,remaining_count,152770,21.191130

@@ -1,0 +1,51 @@
+log,method,tasks,minutes,gpu,source
+helpdesk,PFM,2,0.4166666666666667,H200 full,r17 4209
+helpdesk,PFM-FT,2,0.4333333333333333,H200 full,r17 4210
+mimic_transfer,PFM,2,0.8166666666666667,H200 full,r17 4211
+mimic_transfer,PFM-FT,2,0.8666666666666667,H200 full,r17 4212
+bpi13_incidents,PFM,2,1.1166666666666667,H200 full,r17 4213
+bpi13_incidents,PFM-FT,2,1.0666666666666669,H200 full,r17 4214
+BPI20ID,PFM,2,1.1666666666666667,H200 full,r17 4215
+BPI20ID,PFM-FT,2,0.9,H200 full,r17 4216
+BPI17,PFM,2,12.516666666666667,H200 full,r17 4217
+BPI17,PFM-FT,2,6.516666666666667,H200 full,r17 4218
+helpdesk,PFM,7,0.8,H200 full,r16 4191
+helpdesk,PFM-FT,7,1.0166666666666666,H200 full,r16 4192
+mimic_transfer,PFM,7,2.55,H200 full,r16 4194
+mimic_transfer,PFM-FT,7,2.033333333333333,H200 full,r16 4195
+bpi13_incidents,PFM,7,4.3,H200 full,r16 4198
+bpi13_incidents,PFM-FT,7,2.9166666666666665,H200 full,r16 4199
+BPI20ID,PFM,7,4.433333333333334,H200 full,r16 4202
+BPI20ID,PFM-FT,7,2.85,H200 full,r16 4203
+BPI17,PFM,7,34.916666666666664,H200 full,r16 4205
+BPI17,PFM-FT,7,24.3,H200 full,r16 4206
+helpdesk,FM-v2,2,0.9166666666666666,H200 full,r16 4193
+mimic_transfer,FM-v2,2,1.5666666666666669,H200 full,r16 4196
+bpi13_incidents,FM-v2,2,3.75,H200 full,r16 4200
+BPI20ID,FM-v2,2,4.766666666666667,H200 full,r16 4204
+BPI17,FM-v2,2,48.516666666666666,H200 full,r16 4207
+helpdesk,SuTraN,7,2.4,H200 full,"r11 3664 seed 1, 65 epochs"
+BPI20ID,SuTraN,7,15.383333333333333,H200 full,"r11 3673 seed 1, 75 epochs"
+BPI17,SuTraN,7,289.56666666666666,H200 full,"r11 3793/3794 seeds 1-2 mean, 118/77 epochs"
+mimic_transfer,SuTraN,7,4.866666666666667,H200 full,"r16 4219 seed 4, 78 epochs"
+bpi13_incidents,SuTraN,7,8.733333333333333,H200 full,"r16 4220 seed 4, 62 epochs"
+helpdesk,PFM-RFT,2,0.43333333333333335,H200 full,r24 4388
+mimic_transfer,PFM-RFT,2,0.85,H200 full,r24 4389
+bpi13_incidents,PFM-RFT,2,0.7333333333333333,H200 full,r24 4390
+BPI20ID,PFM-RFT,2,1.0833333333333333,H200 full,r24 4391
+BPI17,PFM-RFT,2,13.25,H200 full,r24 4392
+bpi13_incidents,PFM-cached,2,0.38709017243236304,H200 full,r25 job 119s minus standard 95.8s
+bpi13_incidents,PFM-cached-inproc,2,0.23237420866886774,H200 full,r25 encode+heads only
+bpi13_incidents,PFM-standard-inproc,2,1.5962431609009704,H200 full,r25 in-process baseline
+BPI17,PFM-cached,2,1.5232571859688808,H200 full,r25 job 1223s minus standard 1131.6s
+BPI17,PFM-cached-inproc,2,0.9126344431812564,H200 full,r25 encode+heads only
+BPI17,PFM-standard-inproc,2,18.860076147364452,H200 full,r25 in-process baseline
+BPI20ID,PFM-cached,2,0.3081643228651956,H200 full,r25 job 59s minus standard 40.5s
+BPI20ID,PFM-cached-inproc,2,0.11486063248012215,H200 full,r25 encode+heads only
+BPI20ID,PFM-standard-inproc,2,0.6751690104681377,H200 full,r25 in-process baseline
+helpdesk,PFM-cached,2,0.19435794478437554,H200 full,r25 job 27s minus standard 15.3s
+helpdesk,PFM-cached-inproc,2,0.0814677718328312,H200 full,r25 encode+heads only
+helpdesk,PFM-standard-inproc,2,0.2556420552156245,H200 full,r25 in-process baseline
+mimic_transfer,PFM-cached,2,0.3189349760534242,H200 full,r25 job 50s minus standard 30.9s
+mimic_transfer,PFM-cached-inproc,2,0.16285993051715195,H200 full,r25 encode+heads only
+mimic_transfer,PFM-standard-inproc,2,0.5143983572799091,H200 full,r25 in-process baseline

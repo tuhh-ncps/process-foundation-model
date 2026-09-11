@@ -1,128 +1,235 @@
-# HPC training (self-contained, Hydra-driven)
+# PFM — A Process Foundation Model with Reusable Process Representations
 
-> This folder is a **standalone copy** of the PM-Foundation project, adapted for the HPC
-> cluster. It bundles its own copy of the `pm_foundation` package (`src/`) plus the container,
-> Slurm scripts, and a full Hydra config tree — so it deploys and runs **independently** of the
-> local checkout. Nothing here touches the local training code. Trade-off: it is a copy — sync
-> model/data improvements from the main project when you want them. Stage the event logs from
-> the main project's `data/raw/` (see below).
+Reference implementation for the paper *"PFM: A Process Foundation Model with Reusable Process
+Representations for Predictive Process Monitoring"* (Tran, Wölker, Landsiedel — TUHH).
 
-The same idea as the local project, made portable: **where it runs (laptop / 1 GPU / 2 nodes)
-is a config choice, not a code fork.** One entrypoint (`train.py`), one Hydra tree, driving the
-**real** pm_foundation flows.
+| | |
+|---|---|
+| **Reproduce the experiments** | [REPRODUCE.md](REPRODUCE.md) |
+| **Understand the codebase** | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| **Result data behind every number** | [`results/`](results/) |
+| **Cluster job scripts that produced them** | [`hpc/`](hpc/) |
+
+---
+
+## The problem
+
+A predictive process monitoring (PPM) model is normally trained for **one event log and one
+prediction task**. Change the activity vocabulary, the process, or the target, and you retrain.
+That is because most models embed activities by their **identity** — a lookup table indexed by
+activity ID. Those IDs mean nothing in a log the model has never seen.
+
+PFM asks what happens if the reusable artifact is the **event-state representation itself**, shared
+across both axes: new logs *and* new tasks.
+
+## The idea
+
+Describe an activity by **what it does in the process**, not by what it is called.
+
+> "The thing that usually starts a case, rarely repeats, has two typical successors, and is followed
+> about four hours later" is a description that transfers to a log whose activity names you have
+> never seen.
+
+Concretely, each activity gets a 15-dimensional **fingerprint** of structural, temporal and
+positional descriptors computed from the directly-follows graph (DFG). A frozen encoder turns that
+fingerprint plus one hop of graph context into a **role embedding**. A causal transformer consumes
+role embeddings and event times. Neither component is updated for a new log.
+
+![Three-phase pipeline](assets/pipeline_full.png)
+
+Three phases, and the first two happen exactly once:
+
+| Phase | What it learns | Frozen afterwards? |
+|---|---|---|
+| **1a — Role embedding** | maps a fingerprint + DFG context to a vocabulary-free activity vector | yes |
+| **1b — Backbone** | causal transformer over role embeddings and time, trained on six logs | yes |
+| **2 — Adaptation** | one lightweight head per task, on the target log | the head is all that trains |
+
+Because the vocabulary never enters the model, the 683 activity names in the pretraining corpus
+**do not overlap at all** with the five held-out evaluation logs. There is nothing to look up.
+
+---
+
+## How it works
+
+### Phase 1a — role embeddings
+
+![Role encoder architecture](assets/role_encoder_arch.png)
+
+Each activity `a` in log `ℓ` gets a fingerprint `x_ℓ(a) ∈ R¹⁵`, rank-normalised inside its weakly
+connected DFG component so the values are comparable across logs of very different size.
+
+| Family | Descriptors |
+|---|---|
+| Graph centrality | PageRank, betweenness |
+| Control-flow structure | self-loop probability, case-start and case-end probability, case coverage, repetition rate |
+| Branching entropy | predecessor and successor entropy |
+| Temporal performance | median and spread of incoming and outgoing delays |
+| Position in case | mean and spread of relative event position |
+
+A one-layer residual GIN-style encoder adds one hop of DFG context:
+
+```
+e_ℓ(a) = LayerNorm( x̃_ℓ(a) + MLP_role( (1+ε)·x̃_ℓ(a) + Σ_{b ∈ N⁻(a)} x̃_ℓ(b) + Σ_{b ∈ N⁺(a)} x̃_ℓ(b) ) )
+```
+
+Training combines InfoNCE across two augmented views of the same activity, supervised contrastive
+and classification terms over coarse start/end roles. All statistics come from training traces only.
+
+**Are the 15 features redundant?** Partly, and that is measured rather than assumed. The
+correlation structure and a per-feature non-redundancy score are in the repo:
+
+<p align="center">
+  <img src="assets/feats_pca_corr.png" width="44%" alt="Fingerprint correlation matrix">
+  <img src="assets/feats_importance.png" width="54%" alt="Per-feature unique information">
+</p>
+
+The average feature carries about 0.57 of information the other fourteen cannot reconstruct.
+Temporal descriptors are the least substitutable; PageRank is the most redundant, at 0.27.
+
+### Phase 1b — backbone pretraining
+
+![Backbone architecture](assets/backbone_full.png)
+
+A causal, pre-norm transformer with rotary position embeddings, 6 layers, `d_model = 256`. Its input
+is the frozen role embedding concatenated with time features. It is trained on six heterogeneous
+logs with four objectives: next activity, next event time, remaining time, and a **future-latent**
+(JEPA-style) objective that predicts its own EMA-teacher states `J = 4` steps ahead.
+
+> **Disclosure.** The released backbone was also trained with a small fifth term, a BPI'12
+> application-outcome head at weight 0.3. A control run with that term removed changes results only
+> within pretraining-seed noise. See [REPRODUCE.md](REPRODUCE.md#known-deviations).
+
+### Phase 2 — adaptation
+
+The role encoder and backbone stay frozen. For a new log you need only its **activity set, DFG and
+fingerprints**, computed from the labelled cases you have. One head per task reads the causal event
+state `h_i`:
+
+- four activity tasks use a **single linear layer** — so the metric measures what is *linearly
+  decodable* from the frozen state;
+- three regression tasks use a small `Linear–GELU–Linear` MLP with hidden dimension 128.
+
+Heads are independent. Adding, replacing or removing one changes nothing else.
+
+---
+
+## Does the representation actually transfer?
+
+If role embeddings were log-specific, activities from held-out logs would form their own island. They
+do not. One shared t-SNE over 266 activities from all eleven logs:
+
+![Role space, seen vs unseen](assets/gin15_seen_unseen.png)
+
+Panel (a) colours by source log, (b) by process role, (c) by mean position in the case. Held-out
+activities (triangles) sit interleaved with pretraining activities (circles). The zoom window holds
+9 pretrained and 9 held-out case-openers in the same small region, and panel (c) confirms
+independently that they really are early-in-case events.
+
+---
+
+## Results
+
+Five held-out logs, seven tasks, three seeds. `Frozen Random` is a randomly initialised, frozen
+representation — the honest floor. `PFM` freezes everything and trains only heads. `PFM-FT`
+fine-tunes end to end and is the upper reference, not a competitor.
+
+Means over the five held-out logs at full supervision, recomputed from [`results/v2_all.csv`](results/v2_all.csv):
+
+| Task | Frozen Random | PFM (frozen) | PFM-FT |
+|---|---|---|---|
+| Next activity (acc) | 0.685 | 0.724 | **0.782** |
+| Next 3 activities (acc) | 0.635 | 0.660 | **0.718** |
+| Next 5 activities (acc) | 0.610 | 0.627 | **0.684** |
+| Future activity set (F1) | 0.812 | 0.832 | **0.851** |
+| Next event time (norm. MAE) | 1.000 | 1.003 | **0.925** |
+| Remaining time (norm. MAE) | 1.000 | 0.929 | **0.918** |
+| Remaining count (norm. MAE) | 1.000 | 0.909 | **0.839** |
+
+MAE tasks are divided by that log's Frozen Random error at full supervision, so lower than 1.0 beats
+the floor. Per-log numbers are Table 5 of the paper and are reproducible from the same CSV.
+
+### Label efficiency
+
+![Label efficiency](assets/frozen_agg_all.png)
+
+At **ten labelled cases** the frozen representation already beats Frozen Random on all four activity
+tasks. The budget axis is logarithmic; `all` is the full training partition, which is a different
+size per log, so that last hop is drawn as a dashed connector rather than a normal step.
+
+The time panels start flat for every arm until roughly 300 labels. That is a property of the data
+and the budget, not of head capacity — we checked by rerunning all three regression tasks with a
+**linear** head instead of the MLP, on all five logs, and the floor does not move
+([`results/linhead_all.csv`](results/linhead_all.csv)).
+
+### Accuracy against baselines, and what adaptation costs
+
+![Comparison with baselines and adaptation cost](assets/sota_wall.png)
+
+Against **SuTraN**, which is trained separately per target log, frozen PFM has the better mean in 19
+settings. Against **FM-v2** neither method dominates on the two tasks it supports.
+
+Panel (c) is the part the paper leads with. Adapting to a new log and scoring its test partition, on
+one NVIDIA H200, for the two tasks every method supports:
+
+| Log | PFM | PFM-FT | FM-v2 | SuTraN |
+|---|---|---|---|---|
+| Helpdesk | **0.19** | 0.43 | 0.92 | 2.40 |
+| MIMIC | **0.32** | 0.87 | 1.57 | 4.87 |
+| BPI13 | **0.39** | 1.07 | 3.75 | 8.73 |
+| BPI20ID | **0.31** | 0.90 | 4.77 | 15.38 |
+| BPI17 | **1.52** | 6.52 | 48.52 | 289.57 |
+
+Minutes. PFM's figure uses **cached features**: because the backbone is frozen its states do not
+depend on head weights, so it is encoded once per log and every head trains from the cache. That
+reaches identical test metrics (max difference 0.009 accuracy) and is 3.1× to 20.7× faster than
+re-running the backbone each epoch. Measurements: [`results/timing_pinned.csv`](results/timing_pinned.csv),
+[`results/cached_pfm_bench.jsonl`](results/cached_pfm_bench.jsonl).
+
+### Honest limitations
+
+- Freezing costs accuracy. PFM-FT is better on nearly every task; the frozen model buys reuse and
+  speed, not peak numbers.
+- The future-latent objective is **neutral**. Across three pretraining seeds per variant on all five
+  logs, removing it changes results by at most ~2 seed standard deviations, with inconsistent sign.
+- Per-feature permutation importance of the fingerprint is **inconclusive**: effects sit inside
+  training noise because the features are correlated. Reported as a negative result, not a ranking.
+
+---
+
+## Data
+
+Eleven event logs, all public except MIMIC-IV which requires credentialed access.
+
+| Phase | Logs |
+|---|---|
+| Pretraining | BPI12, BPI19, BPI18, Road Traffic, BPI11, Hospital Billing |
+| Held-out evaluation | BPI17, BPI20ID, MIMIC, BPI13, Helpdesk |
+
+Raw statistics including mean inter-event time and mean case duration are in
+[`results/log_stats.csv`](results/log_stats.csv), regenerable with `python scripts/log_stats.py`.
+
+---
+
+## Quick start
 
 ```bash
-# local — AR pretrain on CPU/MPS/1 GPU (BPI12 is the default dataset)
-python train.py experiment=role_rope trainer=local
-
-# cluster — SAME code; only trainer (device/strategy) + where-it-runs change
-make submit_tuhh                                    # 2 nodes x 1 GPU, DDP, inside Apptainer (make submit_ncps = 1 GPU)
+uv sync                      # or: pip install -e .
+python train.py task=role_pretrain role=default trainer=local
 ```
 
-## Layout
+Full instructions, including how to get each log and how to reproduce every table and figure, are in
+[REPRODUCE.md](REPRODUCE.md).
 
-```
-hpc_training/
-├── train.py                  # the ONE Hydra entrypoint — dispatches task=pretrain | evaluate
-├── configs/                  # Hydra tree — compose a run from swappable groups
-│   ├── train.yaml            #   root defaults + task selector
-│   ├── paths/default.yaml    #   data_dir / output_dir  (ENV-driven — never hardcoded)
-│   ├── data/                 #   bpi12.yaml, bpi12_bpi17.yaml   (which logs, vocab, batching)
-│   ├── model/                #   transformer_small.yaml, transformer_large.yaml
-│   ├── ar/                   #   default.yaml   (objective, loss weight, optimizer)
-│   ├── trainer/              #   local | ddp | fsdp   (device + strategy)
-│   ├── evaluate/             #   label_efficiency.yaml   (downstream probe)
-│   ├── experiment/           #   role_rope.yaml, no_role.yaml   (architecture; one word = a full run)
-│   └── hydra/launcher/       #   slurm.yaml   (submitit — submit from Python, no sbatch)
-├── src/pm_foundation/        # bundled copy of the package (DDP-safe pretrain + sampler)
-├── containers/pmfoundation.def   # Apptainer image (build once on a login node)
-├── slurm/{ncps,tuhh,oland}/*.sbatch   # per-cluster pretrain + eval jobs (robust with Apptainer)
-└── tests/test_samplers.py    # DDP-sharding sampler test
+## Citation
+
+```bibtex
+@article{tran2026pfm,
+  title  = {{PFM}: A Process Foundation Model with Reusable Process Representations
+            for Predictive Process Monitoring},
+  author = {Tran, Trinh and W{\"o}lker, Yannick and Landsiedel, Olaf},
+  year   = {2026}
+}
 ```
 
-**What `train.py` does:** composes the Hydra config into the exact dict `pm_foundation`
-expects, fills the DDP topology (`devices`/`num_nodes`/`strategy`) from the **Slurm environment**,
-then calls the real flow — `pretrain_autoregressive_ddp` (in
-`src/pm_foundation/training/ar_pretrain_hpc.py`, kept separate from the untouched local
-`pretrain_autoregressive`) for `task=pretrain`, or `run_label_efficiency` for `task=evaluate`.
-One process per GPU; only rank 0 prints and writes artifacts.
-
-## 1. One-time setup on the login node
-
-Build the container (needs internet; compute nodes run it offline):
-```bash
-cd hpc_training
-apptainer build $SCRATCH/pmfoundation.sif containers/pmfoundation.def
-```
-
-Stage the data to a **shared** fast filesystem (all nodes must read it — never node-local `/tmp`):
-```bash
-mkdir -p $SCRATCH/pm_foundation/data/raw
-rsync -av /path/to/main/data/raw/BPI12.xes /path/to/main/data/raw/BPI17.xes \
-    $SCRATCH/pm_foundation/data/raw/
-```
-
-`configs/paths/default.yaml` reads `DATA_DIR` / `OUTPUT_DIR` from the environment, so nothing is
-hardcoded. The sbatch scripts export them into the container for you.
-
-## 2. Run
-
-### Quick single-GPU test (proves container → data → train → artifacts)
-```bash
-# edit the ##EDIT## lines (partition, account) in slurm/ncps/pretrain.sbatch once, then:
-make submit_ncps                          # or: sbatch slurm/ncps/pretrain.sbatch
-```
-
-### Multi-node DDP (2 nodes × 1 GPU)
-```bash
-make submit_tuhh                          # or: sbatch slurm/tuhh/pretrain.sbatch
-# multi-log pretraining — pass a comma-separated DATASET (data=multi under the hood):
-make submit_ncps DATASET=bpi12,bpi17
-```
-`train.py` reads `SLURM_NNODES` / `SLURM_NTASKS_PER_NODE` / `SLURM_NTASKS` and sets
-`devices=GPUs/node`, `num_nodes=nodes`, `strategy=ddp` automatically — no numbers to hand-edit in
-Python. Batch size in the data config is **per GPU**; global batch = `batch_size × world_size`
-(scale LR accordingly).
-
-### Downstream label-efficiency evaluation
-```bash
-# after a pretraining run, take its run-id from $OUTPUT_DIR/backbones/<id>/
-python train.py task=evaluate evaluate=label_efficiency evaluate.backbones.ar=<backbone_run_id>
-```
-
-## Two clusters (central + institute)
-
-Same container and code; only the launcher/partition differs. Either submit each cluster's sbatch
-from that cluster's login node, or pass the partition/account on the CLI. Each cluster has its own
-filesystem, so **stage the data and build the `.sif` once per cluster**.
-
-## Submitting from Python instead of sbatch (optional)
-
-`configs/hydra/launcher/slurm.yaml` wires the **submitit** launcher — submit the same run without
-a hand-written sbatch:
-```bash
-pip install '.[hpc]'    # login-node env: adds hydra-submitit-launcher
-python train.py -m experiment=role_rope trainer=ddp hydra/launcher=slurm \
-    hydra.launcher.partition=gpu hydra.launcher.nodes=2 hydra.launcher.gpus_per_node=1
-```
-Note: submitit launches into the **login-node Python env**. On this air-gapped + Apptainer setup
-the **sbatch scripts are the robust path** (they run `train.py` *inside* the container); use
-submitit only if compute nodes can see the same installed env. The sbatch route is recommended.
-
-## Scaling to a bigger model — change the `trainer`, not the code
-
-A model too big for one GPU needs **sharding** (plain DDP replicates the whole model per GPU):
-```bash
-# via submitit (or set model=transformer_large + trainer=fsdp in an sbatch):
-python train.py -m model=transformer_large trainer=fsdp hydra/launcher=slurm \
-    hydra.launcher.nodes=4 hydra.launcher.gpus_per_node=8
-```
-`trainer=fsdp` shards params/grads/optimizer (Lightning's FSDP; or `strategy: deepspeed_stage_3`).
-Add activation checkpointing, `accumulate_grad_batches`, and ≥80 GB GPUs on InfiniBand for the
-truly large regime. Entrypoint, launcher, and container are unchanged.
-
-## Keeping in sync with the main project
-
-This is a copy. When the local `pm_foundation` improves, re-sync `src/pm_foundation/` (the DDP
-pretrain lives only here in `ar_pretrain_hpc.py`; the rest mirrors main). The Hydra configs here
-track the real config schema — update them if the model/AR/data schema changes upstream.
+Licensed under the terms in [LICENSE](LICENSE).
