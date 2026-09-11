@@ -19,7 +19,7 @@ the model captures timing *uncertainty* and can be sampled — MSE is the specia
 a fixed variance. An **opt-in** ``predict_end=True`` adds one extra
 activity class, ``END`` (id ``n_activities``), and trains the last real event to predict it
 — teaching the generative model *when a trace stops*, which a downstream autoregressive
-rollout needs to terminate (``evaluation/rollout.py``). ``END`` is experimental and OFF by
+an autoregressive rollout needs to terminate. ``END`` is experimental and OFF by
 default: the main pretraining pipeline trains exactly the diagram above. When enabled,
 ``END`` is an output class only — it never appears as an input event, so the input
 embedding and the feature spec are untouched.

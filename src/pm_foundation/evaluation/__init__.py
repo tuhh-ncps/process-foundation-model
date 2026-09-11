@@ -1,8 +1,11 @@
-"""Evaluation: metrics, representation probing, and reporting.
+"""Evaluation: the label-efficiency protocol and the shared metric builders.
 
-``probing`` and ``report`` depend on ``tasks`` (which in turn import
-``evaluation.metrics``), so they are exposed lazily to avoid an import cycle:
-importing ``evaluation.metrics`` must not pull in ``probing``/``report``.
+``run_label_efficiency`` is exposed LAZILY and deliberately. Task heads import
+``evaluation.metrics`` for their metric collections, and ``label_efficiency`` imports those same
+task heads — so importing this package eagerly would create a cycle
+(``evaluation`` -> ``label_efficiency`` -> ``tasks`` -> ``evaluation.metrics``).
+Keeping the re-export lazy means ``import pm_foundation.evaluation.metrics`` stays cheap and
+cycle-free, which is what the task heads rely on.
 """
 
 from __future__ import annotations
@@ -11,42 +14,11 @@ import importlib
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from pm_foundation.evaluation.benchmark import load_event_log, run_task_benchmark
     from pm_foundation.evaluation.label_efficiency import run_label_efficiency
-    from pm_foundation.evaluation.probing import extract_trace_embeddings, linear_probe
-    from pm_foundation.evaluation.report import (
-        load_report,
-        render_report,
-        run_benchmark,
-        save_report,
-    )
-    from pm_foundation.evaluation.rollout import SuffixRemainingTime
 
-__all__ = [
-    "SuffixRemainingTime",
-    "extract_trace_embeddings",
-    "linear_probe",
-    "load_event_log",
-    "load_report",
-    "render_report",
-    "run_benchmark",
-    "run_label_efficiency",
-    "run_task_benchmark",
-    "save_report",
-]
+__all__ = ["run_label_efficiency"]
 
-_LAZY = {
-    "SuffixRemainingTime": "pm_foundation.evaluation.rollout",
-    "extract_trace_embeddings": "pm_foundation.evaluation.probing",
-    "linear_probe": "pm_foundation.evaluation.probing",
-    "load_event_log": "pm_foundation.evaluation.benchmark",
-    "load_report": "pm_foundation.evaluation.report",
-    "render_report": "pm_foundation.evaluation.report",
-    "run_benchmark": "pm_foundation.evaluation.report",
-    "run_label_efficiency": "pm_foundation.evaluation.label_efficiency",
-    "run_task_benchmark": "pm_foundation.evaluation.benchmark",
-    "save_report": "pm_foundation.evaluation.report",
-}
+_LAZY = {"run_label_efficiency": "pm_foundation.evaluation.label_efficiency"}
 
 
 def __getattr__(name: str) -> Any:

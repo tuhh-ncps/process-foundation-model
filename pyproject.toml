@@ -55,10 +55,6 @@ dev = [
     "pre-commit>=3.7",
 ]
 
-[project.scripts]
-# Single CLI entry point dispatching to pretraining / finetuning / evaluation.
-pmf = "pm_foundation.cli:main"
-
 [project.urls]
 Homepage = "https://github.com/tuhh-ncps/process-foundation-model"
 Repository = "https://github.com/tuhh-ncps/process-foundation-model"

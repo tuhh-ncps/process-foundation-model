@@ -134,7 +134,7 @@ class MultiTaskLitModule(L.LightningModule):
         if head.target_key == "next_activity":
             return NextActivityHead.build_targets(batch["activity_ids"], batch["padding_mask"])
         raise KeyError(
-            f"Batch is missing target '{head.target_key}'; provide it via the datamodule."
+            f"Batch is missing target '{head.target_key}'; provide it from the dataset/collate fn."
         )
 
     # -- steps -------------------------------------------------------------

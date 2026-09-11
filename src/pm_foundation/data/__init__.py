@@ -1,4 +1,4 @@
-"""Data layer: readers, schema, preprocessing, vocab, augmentations, datamodule."""
+"""Data layer: readers, schema, preprocessing, vocabulary, and role fingerprints."""
 
 from __future__ import annotations
 
