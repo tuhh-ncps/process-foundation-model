@@ -19,7 +19,9 @@ partition, best-val weights restored. The two paths must reach the SAME test met
 prints both so any divergence is visible.
 
 Usage: python bench_cached_pfm.py <log> [--seed 0] [--skip-standard]
-       [--backbone RUN_ID] [--tasks next_activity[,remaining_time]] [--out results.jsonl] [--mask-check]
+       [--backbone RUN_ID] [--tasks TASK[,TASK...]] [--out results.jsonl] [--mask-check]
+TASK is any per-event task in ALL_TASKS. next_3/next_5, remaining_count and future_activity_set derive their
+targets from the cached next_activity and padding_mask, exactly as their heads do on the standard path.
 Defaults reproduce the r25 timing benchmark exactly. --backbone/--tasks/--out serve the feature-budget ladder
 (protocols/feature_ladder.md, C1); the backbone's role_feature_mask is read from its manifest. --mask-check runs
 C2.1 instead: cached states with no mask key vs an explicit all-ones mask (plus a no-mask rerun as control).
@@ -55,7 +57,9 @@ LOGS = {
     "BPI17": ("/workspace/data/raw/BPI17.xes", None),
 }
 BACKBONE = "backbone-20260906-153102-multi-none-v2-gin15-17fc3c"
-TASKS = ["next_activity", "remaining_time"]
+TASKS = ["next_activity", "remaining_time"]          # default task set (r25 timing benchmark)
+ALL_TASKS = ["next_activity", "next_3_activities", "next_5_activities", "next_time", "remaining_time",
+             "remaining_count", "future_activity_set"]  # all per-event tasks the cache can serve
 MAXLEN, BATCH, HEAD_HIDDEN, LR, MAX_EPOCHS, PATIENCE = 64, 128, 128, 1e-3, 100, 10
 
 
@@ -94,7 +98,7 @@ def _pad_to(x: torch.Tensor, length: int, value: float) -> torch.Tensor:
 def encode_split(backbone: TraceBackbone, loader: DataLoader, device: str) -> dict[str, torch.Tensor]:
     """Run the frozen backbone once over a split and keep h_i (+ targets) as dense tensors."""
     keys = {"event_states": 0.0, "trace_embedding": None, "padding_mask": True,
-            "next_activity": float(_NA_IGNORE), "remaining_time": 0.0}
+            "next_activity": float(_NA_IGNORE), "remaining_time": 0.0, "next_time": float("nan")}
     acc: dict[str, list[torch.Tensor]] = {k: [] for k in keys}
     for batch in loader:
         batch = {k: (v.to(device, non_blocking=True) if torch.is_tensor(v) else v) for k, v in batch.items()}
@@ -104,6 +108,7 @@ def encode_split(backbone: TraceBackbone, loader: DataLoader, device: str) -> di
         acc["padding_mask"].append(_pad_to(batch["padding_mask"], MAXLEN, True))
         acc["next_activity"].append(_pad_to(batch["next_activity"], MAXLEN, _NA_IGNORE))
         acc["remaining_time"].append(_pad_to(batch["remaining_time"], MAXLEN, 0.0))
+        acc["next_time"].append(_pad_to(batch["next_time"], MAXLEN, float("nan")))  # last event: NaN, masked
     return {k: torch.cat(v, dim=0) for k, v in acc.items()}
 
 
@@ -138,7 +143,7 @@ def main() -> None:
     ap.add_argument("--skip-standard", action="store_true")
     a = ap.parse_args()
     tasks = [t.strip() for t in a.tasks.split(",") if t.strip()]
-    assert tasks and set(tasks) <= set(TASKS), f"--tasks must be a subset of {TASKS}"
+    assert tasks and set(tasks) <= set(ALL_TASKS), f"--tasks must be a subset of {ALL_TASKS}"
     path, max_traces = LOGS[a.log]
     device = "cuda"
 

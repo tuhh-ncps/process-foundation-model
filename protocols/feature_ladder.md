@@ -201,3 +201,19 @@ Decision: T. Tran, after the C2 gate returned FAILED (commit d33be75, job 4546).
   with the main result tables.
 - Implementation: `protocols/feature_ladder_waivers.json` lists C2.2 under A1. The C2 verdict is
   `PASSED_WITH_WAIVER` only if every non-waived check passes; any other failure still blocks C3.
+
+### A2 — 2026-09-16 — exploratory extension to six further tasks
+
+Decision: T. Tran, while C3 (next activity) was finishing and before its results were aggregated.
+
+- The same 16 frozen backbones (k = 0…15), five held-out logs, evaluation seeds {0, 1, 2} and full labelled
+  budget are additionally evaluated on next 3 activities, next 5 activities, future activity set, next event
+  time, remaining time and remaining event count (run r33).
+- Evaluation uses the cached evaluator of C1, extended to cache the `next_time` target (NaN-padded, masked by
+  its head). The other five tasks derive their targets from the already cached `next_activity` and
+  `padding_mask`, exactly as their heads do on the standard path. The A1 pipeline caveat applies: numbers are
+  compared across budgets within a task, not with the main result tables.
+- A smoke run (Helpdesk, seed 0, GIN-15, all six tasks) must complete before the grouped jobs start.
+- This extension is exploratory. It adds no primary claim and does not change A–D for next activity. Per task it
+  reports the D2 mean, the D3 seed-wise SD and the D5 paired per-log differences to k = 15; no per-task
+  k_near thresholds are defined, and MAE tasks are reported in raw units per log.

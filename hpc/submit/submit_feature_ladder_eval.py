@@ -5,6 +5,8 @@
   python hpc/submit/submit_feature_ladder_eval.py chain JOBID[:JOBID...] [--dry]
         # one job that starts after the given jobs succeed, computes the C2 verdict, and runs C3 only if it PASSED
   python hpc/submit/submit_feature_ladder_eval.py run      # (inside that job) gate check, then C3 sequentially
+  python hpc/submit/submit_feature_ladder_eval.py tasks [--dry]
+        # amendment A2: the six other tasks for all 16 backbones; a smoke job first, then 3 grouped jobs afterok
 
 Every job is pinned to a full H200 so all feature budgets share one GPU type. Jobs only WRITE results
 (outputs/feature_ladder/c2/*.jsonl, outputs/feature_ladder/eval/fbKK.jsonl); the C2 verdict is computed by
@@ -27,7 +29,8 @@ GRES = "--gres=gpu:nvidia_h200_nvl:1"
 
 stage = sys.argv[1] if len(sys.argv) > 1 else ""
 DRY = "--dry" in sys.argv
-assert stage in ("validate", "ladder", "chain", "run"), __doc__
+assert stage in ("validate", "ladder", "chain", "run", "tasks"), __doc__
+TASKS6 = "next_3_activities,next_5_activities,future_activity_set,next_time,remaining_time,remaining_count"
 BENCH = next((p for p in ("hpc/bench/bench_cached_pfm.py", "bench_cached_pfm.py") if os.path.exists(p)), None)
 assert BENCH, "bench_cached_pfm.py not found (run from the repository root)"
 
@@ -40,15 +43,18 @@ def bench(log: str, backbone: str, out: str, extra: str) -> str:
     return f"python {BENCH} {log} --backbone {backbone} --out {out} {extra}"
 
 
-def submit(name: str, cmds: list[str], time_limit: str) -> None:
-    cmd = "cd /workspace && set -e && mkdir -p outputs/feature_ladder/c2 outputs/feature_ladder/eval && " + " && ".join(cmds)
+def submit(name: str, cmds: list[str], time_limit: str, dep: str | None = None) -> str | None:
+    cmd = ("cd /workspace && set -e && mkdir -p outputs/feature_ladder/c2 outputs/feature_ladder/eval "
+           "outputs/feature_ladder/eval_tasks && " + " && ".join(cmds))
     if DRY:
-        print(f"DRY  {name}  ({len(cmds)} invocations, {time_limit})\n     first: {cmds[0]}\n     last:  {cmds[-1]}")
-        return
+        print(f"DRY  {name}  ({len(cmds)} invocations, {time_limit}, dep={dep})\n     first: {cmds[0]}\n     last:  {cmds[-1]}")
+        return "DRYJOB"
+    extra = [f"--dependency=afterok:{dep}"] if dep else []
     r = subprocess.run(["sbatch", "--job-name=" + name, "--time=" + time_limit, "--cpus-per-task=4", "--mem=64G",
-                        GRES, "--export=ALL", "slurm/ncps/run_cmd.sbatch"],
+                        GRES] + extra + ["--export=ALL", "slurm/ncps/run_cmd.sbatch"],
                        env=dict(os.environ, USE_GPU="1", CMD=cmd), capture_output=True, text=True)
     print(("OK   " if r.returncode == 0 else "FAIL ") + name + "  " + (r.stdout or r.stderr).strip())
+    return r.stdout.strip().split()[-1] if r.returncode == 0 else None
 
 
 def ladder_backbones() -> dict[int, str]:
@@ -104,6 +110,15 @@ else:
     if stage == "ladder":
         for k, backbone in backbones:
             submit(f"r32-eval-fb{k:02d}", ladder_cmds(k, backbone), "02:00:00")
+    elif stage == "tasks":  # amendment A2 (exploratory): six more tasks, same backbones / logs / seeds / budget
+        out = "outputs/feature_ladder/eval_tasks"
+        smoke = submit("r33-tasks-smoke", [bench("helpdesk", GIN15, f"{out}/smoke.jsonl",
+                                                 f"--seed 0 --tasks {TASKS6} --skip-standard")], "00:30:00")
+        by_k = dict(backbones)
+        for ks in ((0, 1, 2, 3, 4, 5), (6, 7, 8, 9, 10), (11, 12, 13, 14, 15)):
+            cmds = [bench(L, by_k[k], f"{out}/fb{k:02d}.jsonl", f"--seed {s} --tasks {TASKS6} --skip-standard")
+                    for k in ks for L in LOGS for s in SEEDS]
+            submit(f"r33-tasks-fb{ks[0]:02d}-{ks[-1]:02d}", cmds, "08:00:00", dep=smoke)
     else:  # run: inside the chained job
         os.makedirs("outputs/feature_ladder/eval", exist_ok=True)
         for k, backbone in backbones:
