@@ -19,6 +19,10 @@ partition, best-val weights restored. The two paths must reach the SAME test met
 prints both so any divergence is visible.
 
 Usage: python bench_cached_pfm.py <log> [--seed 0] [--skip-standard]
+       [--backbone RUN_ID] [--tasks next_activity[,remaining_time]] [--out results.jsonl] [--mask-check]
+Defaults reproduce the r25 timing benchmark exactly. --backbone/--tasks/--out serve the feature-budget ladder
+(protocols/feature_ladder.md, C1); the backbone's role_feature_mask is read from its manifest. --mask-check runs
+C2.1 instead: cached states with no mask key vs an explicit all-ones mask (plus a no-mask rerun as control).
 """
 from __future__ import annotations
 
@@ -126,9 +130,15 @@ def main() -> None:
     global _NA_IGNORE
     ap = argparse.ArgumentParser()
     ap.add_argument("log")
-    ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--seed", "--eval-seed", dest="seed", type=int, default=0)
+    ap.add_argument("--backbone", default=BACKBONE)
+    ap.add_argument("--tasks", default=",".join(TASKS))
+    ap.add_argument("--out", help="append the result JSON line to this file")
+    ap.add_argument("--mask-check", action="store_true")
     ap.add_argument("--skip-standard", action="store_true")
     a = ap.parse_args()
+    tasks = [t.strip() for t in a.tasks.split(",") if t.strip()]
+    assert tasks and set(tasks) <= set(TASKS), f"--tasks must be a subset of {TASKS}"
     path, max_traces = LOGS[a.log]
     device = "cuda"
 
@@ -143,7 +153,7 @@ def main() -> None:
     built = build_traces(log, min_trace_len=2, max_trace_len=MAXLEN)
     splits = split_log(built, SplitStrategy.TEMPORAL, (0.70, 0.15, 0.15), seed=0)
     registry = RunRegistry("outputs")
-    run_dir = registry.run_dir("backbone", BACKBONE)
+    run_dir = registry.run_dir("backbone", a.backbone)
     spec = FeatureSpec.load(run_dir / "feature_spec.json")
     model_cfg = dict(RunManifest.load(run_dir / "manifest.json").config["model"])
     model_cfg["causal"] = True
@@ -165,11 +175,36 @@ def main() -> None:
     print(f"[bench] log={a.log} traces train/val/test = {n_tr}/{n_va}/{n_te} | prep {t_prep:.1f}s "
           f"(excluded from both timers)", flush=True)
 
-    def fresh_backbone() -> TraceBackbone:
-        bb = TraceBackbone.from_config(model_cfg, spec)
+    def fresh_backbone(cfg: dict | None = None) -> TraceBackbone:
+        bb = TraceBackbone.from_config(cfg or model_cfg, spec)
         bb.load_pretrained(sd, role_sd)
         bb.role_encoder.set_graph(role_graph)
         return bb
+
+    def emit(tag: str, payload: dict) -> None:
+        line = json.dumps(payload)
+        print(f"[{tag}] " + line, flush=True)
+        if a.out:
+            with open(a.out, "a") as fh:
+                fh.write(line + "\n")
+
+    if a.mask_check:  # C2.1: plumbing of role_feature_mask must not change a single cached value
+        from pm_foundation.data.roles import N_ROLE_FEATURES
+        ones_cfg = {**model_cfg, "role_feature_mask": list(range(N_ROLE_FEATURES))}
+        checks = {}
+        for label, cfg in (("control_no_mask_rerun", model_cfg), ("all_ones_mask", ones_cfg)):
+            ref, oth = fresh_backbone().to(device).eval(), fresh_backbone(cfg).to(device).eval()
+            with torch.no_grad():
+                d = {"role_table": float((ref.role_encoder() - oth.role_encoder()).abs().max())}
+            for part in ("train", "val", "test"):
+                cr = encode_split(ref, raw_loader(getattr(splits, part).traces, False), device)
+                co = encode_split(oth, raw_loader(getattr(splits, part).traces, False), device)
+                d[f"{part}_event_states"] = float((cr["event_states"] - co["event_states"]).abs().max())
+            checks[label] = d
+            del ref, oth
+        emit("mask-check-json", {"log": a.log, "backbone": a.backbone, "max_abs_diff": checks,
+                                 "passed": all(v == 0.0 for v in checks["all_ones_mask"].values())})
+        return
 
     # ---------------- variant A: CACHED ----------------
     torch.manual_seed(a.seed)
@@ -181,7 +216,7 @@ def main() -> None:
     t_encode = time.perf_counter() - tA0
     del bb
     cached_res = {}
-    for task in TASKS:
+    for task in tasks:
         head = _build_head(task, _TASKS[task], int(model_cfg["d_model"]), spec, None,
                            head_hidden=HEAD_HIDDEN, next_activity_n=eval_label_spec.n_activities, pooling="trace")
         module = MultiTaskLitModule(_CachedBackbone(), {task: head}, freeze_backbone=True,
@@ -200,7 +235,7 @@ def main() -> None:
     if not a.skip_standard:
         torch.manual_seed(a.seed)
         tB0 = time.perf_counter()
-        for task in TASKS:
+        for task in tasks:
             head = _build_head(task, _TASKS[task], int(model_cfg["d_model"]), spec, None,
                                head_hidden=HEAD_HIDDEN, next_activity_n=eval_label_spec.n_activities, pooling="trace")
             module = MultiTaskLitModule(fresh_backbone(), {task: head}, freeze_backbone=True,
@@ -213,14 +248,14 @@ def main() -> None:
         torch.cuda.synchronize()
         t_standard = time.perf_counter() - tB0
 
-    out = {"log": a.log, "seed": a.seed, "n_train": n_tr, "n_val": n_va, "n_test": n_te,
+    out = {"log": a.log, "backbone": a.backbone, "tasks": tasks, "seed": a.seed, "n_train": n_tr, "n_val": n_va, "n_test": n_te,
            "prep_s": t_prep, "encode_s": t_encode, "cached_s": t_cached, "standard_s": t_standard,
            "cached_min": t_cached / 60, "standard_min": t_standard / 60,
            "speedup": (t_standard / t_cached) if t_standard == t_standard else None,
            "cached": {k: {"value": v, "epochs": e} for k, (v, e) in cached_res.items()},
            "standard": {k: {"value": v, "epochs": e} for k, (v, e) in std_res.items()},
            "gpu": torch.cuda.get_device_name(0)}
-    print("[bench-json] " + json.dumps(out), flush=True)
+    emit("bench-json", out)
 
 
 if __name__ == "__main__":

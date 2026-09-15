@@ -184,6 +184,7 @@ class RoleEmbedder(nn.Module):
       * ``mlp`` — a per-node MLP over the fingerprint (no message passing),
       * ``gin`` — directed GIN over the DFG (the current structural channel, in isolation).
     ``feature_subset`` selects the input columns ("all"=15 or "five"=the 5 non-positional feats).
+    ``feature_mask`` (optional) keeps the input width but zeroes every column not listed (feature-budget ladder).
     """
 
     def __init__(
@@ -193,6 +194,7 @@ class RoleEmbedder(nn.Module):
         arch: str = "gin",
         n_layers: int = 1,
         feature_subset: str = "all",
+        feature_mask: list[int] | None = None,
         edge_dropout: float = 0.2,
         feat_dropout: float = 0.1,
         tau: float = 0.2,
@@ -202,6 +204,19 @@ class RoleEmbedder(nn.Module):
         self.feature_idx = list(ROLE_FEATURE_SUBSETS.get(feature_subset, feature_subset))
         self.featureless = not self.feature_idx
         n_in = 1 if self.featureless else len(self.feature_idx)  # featureless: constant input
+        # Zero-masking (protocols/feature_ladder.md): keep the input width, set unselected descriptors to 0.
+        # `feature_mask` lists the KEPT fingerprint indices (code order); None = no masking. Rebuilt from the
+        # config as a non-persistent buffer, so checkpoints trained without a mask still load strictly.
+        mask = None
+        if feature_mask is not None:
+            kept = [int(i) for i in feature_mask]
+            if self.featureless:
+                raise ValueError("role_feature_mask needs input features (feature_subset != 'none')")
+            if len(set(kept)) != len(kept) or any(i not in self.feature_idx for i in kept):
+                raise ValueError(f"role_feature_mask {kept} must be distinct indices from {self.feature_idx}")
+            mask = torch.tensor([1.0 if j in kept else 0.0 for j in self.feature_idx])
+        self.feature_mask = None if feature_mask is None else sorted(int(i) for i in feature_mask)
+        self.register_buffer("input_mask", mask, persistent=False)
         self.edge_dropout = edge_dropout
         self.feat_dropout = feat_dropout
         self.tau = tau
@@ -239,6 +254,8 @@ class RoleEmbedder(nn.Module):
             f = self.feats.new_ones(self.feats.shape[0], 1)
         else:
             f = self.feats[:, self.feature_idx]
+            if self.input_mask is not None:  # zero-masking: unselected descriptors -> 0, before dropout
+                f = f * self.input_mask
             if augment and self.feat_dropout > 0.0:
                 f = F.dropout(f, p=self.feat_dropout, training=True)
         if self.arch == "raw":
@@ -296,6 +313,8 @@ def build_role_module(model_cfg: dict, n_activities: int) -> nn.Module:
         arch=arch,
         n_layers=int(model_cfg.get("role_layers", 1)),
         feature_subset=str(model_cfg.get("role_feature_subset", "all")),
+        feature_mask=(None if model_cfg.get("role_feature_mask") is None
+                      else [int(i) for i in model_cfg.get("role_feature_mask")]),
         edge_dropout=float(model_cfg.get("edge_dropout", 0.2)),
         feat_dropout=float(model_cfg.get("feat_dropout", 0.1)),
         tau=float(model_cfg.get("tau", 0.2)),

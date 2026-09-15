@@ -44,7 +44,7 @@ from pm_foundation.data.preprocessing import fit_feature_spec
 from pm_foundation.data.roles import apply_aggregator, fit_role_graph
 from pm_foundation.data.samplers import LengthBucketedSampler
 from pm_foundation.data.schema import EventLog, Trace
-from pm_foundation.experiments import RunRegistry, plot_learning_curve, write_learning_curve
+from pm_foundation.experiments import RunManifest, RunRegistry, plot_learning_curve, write_learning_curve
 from pm_foundation.ssl import build_autoregressive_module
 from pm_foundation.training.ar_pretrain import _read_log, _train_traces  # pure, shared helpers
 from pm_foundation.training.callbacks import LearningCurveRecorder
@@ -267,6 +267,13 @@ def pretrain_autoregressive_ddp(config: dict[str, Any]) -> Path:
     role_init = config.get("role_init_from")
     role_enc = getattr(module.backbone, "role_encoder", None)
     if role_init and role_enc is not None:
+        # The zero-mask is config-only (non-persistent buffer): the Phase-1a encoder and this backbone must
+        # declare the same role_feature_mask, or the loaded weights would be read with a different mask.
+        role_cfg = RunManifest.load(registry.run_dir("role_encoder", role_init) / "manifest.json").config.get("model", {})
+        want, got = role_cfg.get("role_feature_mask"), config["model"].get("role_feature_mask")
+        norm = lambda m: None if m is None else sorted(int(i) for i in m)  # noqa: E731
+        if norm(want) != norm(got):
+            raise ValueError(f"role_feature_mask mismatch: role encoder {role_init} has {want}, backbone config has {got}")
         rsd = torch.load(registry.run_dir("role_encoder", role_init) / "role_encoder.pt", map_location="cpu")
         pkeys = {n for n, _ in role_enc.named_parameters()}
         role_enc.load_state_dict({k: v for k, v in rsd.items() if k in pkeys}, strict=False)
