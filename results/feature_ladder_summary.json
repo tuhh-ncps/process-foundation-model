@@ -1,0 +1,13 @@
+{
+  "k_near_primary": 7,
+  "k_near_sensitivity": null,
+  "mu15": 0.7204123497009277,
+  "sigma15": 0.0058,
+  "sigma15_source": "GIN-15 17fc3c, ddeadf, bfb92b (five-log mean SD)",
+  "threshold_primary": 0.7146123497009277,
+  "threshold_sensitivity": 0.7244999999999999,
+  "frozen_random_reference": 0.685271845261256,
+  "case_start_or_end_enters_at_k": 9,
+  "order_letters": "CHFNJBMLDOKGIEA",
+  "k_near_sensitivity_note": "undefined: ladder mu_15 = 0.7204 lies below the sensitivity threshold 0.7245 (standard-path mean; A1)"
+}

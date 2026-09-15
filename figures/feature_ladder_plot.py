@@ -22,7 +22,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 RES = os.path.join(os.path.dirname(HERE), "results")
 LOGS = ["bpi13_incidents", "BPI17", "BPI20ID", "helpdesk", "mimic_transfer"]
 
-rows = [{k: (float(v) if k not in ("k",) else int(v)) for k, v in r.items()}
+def _num(key, value):
+    if key == "k":
+        return int(value)
+    return float(value) if value not in ("", "None") else None   # e.g. undefined k_near sensitivity
+
+
+rows = [{k: _num(k, v) for k, v in r.items()}
         for r in csv.DictReader(open(os.path.join(RES, "feature_ladder_summary.csv")))]
 summ = json.load(open(os.path.join(RES, "feature_ladder_summary.json")))
 ks = [r["k"] for r in rows]

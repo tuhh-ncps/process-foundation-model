@@ -133,9 +133,12 @@ def report(acc: dict[tuple[int, str, int], float], artifact: dict, out_dir: Path
             "n_logs": len(LOGS), "n_eval_seeds": len(SEEDS),
         })
 
-    def k_near(mu15: float) -> int:                                                                    # D4
+    def k_near(mu15: float) -> int | None:                                                             # D4
+        """None when no budget qualifies (possible only if mu_15 itself lies below the threshold, e.g. the
+        cross-pipeline sensitivity value under amendment A1)."""
         thr = mu15 - SIGMA15
-        return min(k for k in KS if all(mu[j] >= thr for j in KS if j >= k))
+        ok = [k for k in KS if all(mu[j] >= thr for j in KS if j >= k)]
+        return min(ok) if ok else None
 
     fr = v2_rows("random_role")
     frozen_random = st.mean(st.mean(fr[(log, s)] for s in SEEDS) for log in LOGS)
@@ -144,6 +147,9 @@ def report(acc: dict[tuple[int, str, int], float], artifact: dict, out_dir: Path
                "threshold_primary": mu[15] - SIGMA15, "threshold_sensitivity": MU15_THREE_SEED - SIGMA15,
                "frozen_random_reference": frozen_random, "case_start_or_end_enters_at_k": enters,
                "order_letters": artifact["order_letters"]}
+    if summary["k_near_sensitivity"] is None:
+        summary["k_near_sensitivity_note"] = (f"undefined: ladder mu_15 = {mu[15]:.4f} lies below the sensitivity "
+                                              f"threshold {MU15_THREE_SEED - SIGMA15:.4f} (standard-path mean; A1)")
     for r in rows:
         r["k_near_primary"], r["k_near_sensitivity"] = summary["k_near_primary"], summary["k_near_sensitivity"]
         r["sigma15"] = SIGMA15
