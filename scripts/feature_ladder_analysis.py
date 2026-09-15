@@ -83,7 +83,15 @@ def c2(c2_dir: str, out: Path) -> dict:
                                     "abs_diff": abs(rep[0] - rep[1]) if len(rep) == 2 else None, "tolerance": TOL_REPEAT}
     ok &= c23_pass
 
-    verdict = {"protocol": "protocols/feature_ladder.md", "status": "PASSED" if ok else "FAILED", "checks": checks}
+    # Waivers are explicit protocol amendments (protocols/feature_ladder_waivers.json). A waived check is still
+    # computed and reported; only the non-waived checks decide whether C3 may run.
+    waiver_path = ROOT / "protocols" / "feature_ladder_waivers.json"
+    waivers = json.load(open(waiver_path)) if waiver_path.exists() else {}
+    waived = {name: waivers[name] for name, c in checks.items() if not c["passed"] and name in waivers}
+    blocking = [name for name, c in checks.items() if not c["passed"] and name not in waivers]
+    status = "PASSED" if ok else ("PASSED_WITH_WAIVER" if not blocking else "FAILED")
+    verdict = {"protocol": "protocols/feature_ladder.md", "status": status, "checks": checks,
+               "waived": waived, "blocking_failures": blocking}
     out.write_text(json.dumps(verdict, indent=2))
     return verdict
 

@@ -180,4 +180,24 @@ Case-start/Case-end probability; next activity only; D5 intervals conditional on
 
 ## Amendments
 
-(none)
+### A1 — 2026-09-15 — C2.2 waived; cached evaluation retained
+
+Decision: T. Tran, after the C2 gate returned FAILED (commit d33be75, job 4546).
+
+- C2.1 (mask plumbing: max |diff| = 0 on all five logs) and C2.3 (repeatability: identical accuracy) passed
+  and remain required.
+- C2.2 (agreement of the cached evaluator with the standard label-efficiency path on GIN-15) failed:
+  per-run |Δ accuracy| up to 0.043; per-log three-seed mean differences −0.030 (Helpdesk), +0.010 (MIMIC),
+  +0.008 (BPI17), −0.003 (BPI13), −0.002 (BPI20ID); overall −0.003. Attributed to the cached path's plain
+  shuffled batches and single seeding versus the standard path's length-bucketed batches and per-probe
+  reseeding.
+- The feature-budget ladder is an ablation whose budgets are compared only with each other. C3 therefore
+  proceeds with the cached evaluator for every k, as specified. The C2 thresholds are unchanged; the C2.2
+  failure and its magnitude are reported with the results.
+- Consequences for Phase D: μ_k, the D3 seed-wise SD, the D4 primary k_near (μ_15 is the ladder's own
+  cached k = 15 point) and all D5 paired differences are within one evaluation pipeline. The Frozen Random
+  reference (C4), σ_15 (D3b) and the D4 sensitivity value μ_15 = 0.7303 come from the standard path; they
+  are labelled as cross-pipeline references, and absolute ladder accuracies are not compared numerically
+  with the main result tables.
+- Implementation: `protocols/feature_ladder_waivers.json` lists C2.2 under A1. The C2 verdict is
+  `PASSED_WITH_WAIVER` only if every non-waived check passes; any other failure still blocks C3.

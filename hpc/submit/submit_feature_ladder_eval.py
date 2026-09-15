@@ -8,7 +8,8 @@
 
 Every job is pinned to a full H200 so all feature budgets share one GPU type. Jobs only WRITE results
 (outputs/feature_ladder/c2/*.jsonl, outputs/feature_ladder/eval/fbKK.jsonl); the C2 verdict is computed by
-scripts/feature_ladder_analysis.py, and the ladder stage refuses to submit until that verdict file says PASSED.
+scripts/feature_ladder_analysis.py, and the ladder stage refuses to submit until that verdict file says PASSED (or PASSED_WITH_WAIVER,
+when every failed check is waived by a protocol amendment in protocols/feature_ladder_waivers.json).
 Run from the repository root.
 """
 import glob
@@ -97,7 +98,7 @@ else:
         sys.exit(0)
 
     verdict = json.load(open(C2_VERDICT)) if os.path.exists(C2_VERDICT) else {}
-    if verdict.get("status") != "PASSED":
+    if verdict.get("status") not in ("PASSED", "PASSED_WITH_WAIVER"):  # waivers: protocol amendments only
         sys.exit(f"C2 gate not passed ({C2_VERDICT}: {verdict.get('status')}); no ladder evaluation")
     backbones = sorted(ladder_backbones().items())
     if stage == "ladder":
