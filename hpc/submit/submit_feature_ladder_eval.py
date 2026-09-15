@@ -2,6 +2,9 @@
 
   python hpc/submit/submit_feature_ladder_eval.py validate [--dry]   # C2 gate: mask plumbing, agreement, repeatability
   python hpc/submit/submit_feature_ladder_eval.py ladder   [--dry]   # C3: 16 backbones x 5 held-out logs x seeds {0,1,2}
+  python hpc/submit/submit_feature_ladder_eval.py chain JOBID[:JOBID...] [--dry]
+        # one job that starts after the given jobs succeed, computes the C2 verdict, and runs C3 only if it PASSED
+  python hpc/submit/submit_feature_ladder_eval.py run      # (inside that job) gate check, then C3 sequentially
 
 Every job is pinned to a full H200 so all feature budgets share one GPU type. Jobs only WRITE results
 (outputs/feature_ladder/c2/*.jsonl, outputs/feature_ladder/eval/fbKK.jsonl); the C2 verdict is computed by
@@ -23,7 +26,7 @@ GRES = "--gres=gpu:nvidia_h200_nvl:1"
 
 stage = sys.argv[1] if len(sys.argv) > 1 else ""
 DRY = "--dry" in sys.argv
-assert stage in ("validate", "ladder"), __doc__
+assert stage in ("validate", "ladder", "chain", "run"), __doc__
 BENCH = next((p for p in ("hpc/bench/bench_cached_pfm.py", "bench_cached_pfm.py") if os.path.exists(p)), None)
 assert BENCH, "bench_cached_pfm.py not found (run from the repository root)"
 
@@ -74,9 +77,36 @@ if stage == "validate":
              for _ in range(2)]
     submit("r32-c2-validate", cmds, "03:00:00")
 else:
-    verdict = json.load(open(C2_VERDICT)) if os.path.exists(C2_VERDICT) else {}
-    assert verdict.get("status") == "PASSED", f"C2 gate not passed ({C2_VERDICT}: {verdict.get('status')})"
-    for k, backbone in sorted(ladder_backbones().items()):
-        cmds = [bench(L, backbone, f"outputs/feature_ladder/eval/fb{k:02d}.jsonl",
+    def ladder_cmds(k: int, backbone: str) -> list[str]:
+        return [bench(L, backbone, f"outputs/feature_ladder/eval/fb{k:02d}.jsonl",
                       f"--seed {s} --tasks next_activity --skip-standard") for L in LOGS for s in SEEDS]
-        submit(f"r32-eval-fb{k:02d}", cmds, "02:00:00")
+
+    if stage == "chain":
+        deps = next((x for x in sys.argv[2:] if x != "--dry"), "")
+        if not deps or not all(p.isdigit() for p in deps.split(":")):
+            sys.exit("chain needs JOBID[:JOBID...]")
+        cmd = ("cd /workspace && set -e && python scripts/feature_ladder_analysis.py c2 && "
+               f"python {os.path.basename(__file__) if os.path.exists(os.path.basename(__file__)) else __file__} run")
+        if DRY:
+            print(f"DRY  r32-eval-chain  afterok:{deps}\n     CMD: {cmd}")
+        else:
+            r = subprocess.run(["sbatch", "--job-name=r32-eval-chain", "--time=10:00:00", "--cpus-per-task=4", "--mem=64G",
+                                GRES, f"--dependency=afterok:{deps}", "--export=ALL", "slurm/ncps/run_cmd.sbatch"],
+                               env=dict(os.environ, USE_GPU="1", CMD=cmd), capture_output=True, text=True)
+            print(("OK   " if r.returncode == 0 else "FAIL ") + "r32-eval-chain  " + (r.stdout or r.stderr).strip())
+        sys.exit(0)
+
+    verdict = json.load(open(C2_VERDICT)) if os.path.exists(C2_VERDICT) else {}
+    if verdict.get("status") != "PASSED":
+        sys.exit(f"C2 gate not passed ({C2_VERDICT}: {verdict.get('status')}); no ladder evaluation")
+    backbones = sorted(ladder_backbones().items())
+    if stage == "ladder":
+        for k, backbone in backbones:
+            submit(f"r32-eval-fb{k:02d}", ladder_cmds(k, backbone), "02:00:00")
+    else:  # run: inside the chained job
+        os.makedirs("outputs/feature_ladder/eval", exist_ok=True)
+        for k, backbone in backbones:
+            print(f"[ladder] k={k} {backbone}", flush=True)
+            for c in ladder_cmds(k, backbone):
+                subprocess.run(c, shell=True, check=True)
+        print("[ladder] all 16 backbones evaluated", flush=True)
