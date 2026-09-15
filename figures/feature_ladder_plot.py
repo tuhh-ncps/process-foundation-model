@@ -33,7 +33,8 @@ fig, (ax, bx) = plt.subplots(1, 2, figsize=(11.5, 4.0))
 ax.errorbar(ks, [r["mu"] for r in rows], yerr=[r["seedwise_sd"] for r in rows], color="#0072b2", marker="o",
             ms=5, lw=1.8, capsize=3, label="GIN-$k$ (mean $\\pm$ SD over eval seeds)")
 ax.axhline(summ["threshold_primary"], color="#0072b2", ls="--", lw=1.1, label="$\\mu_{15}-\\sigma_{15}$")
-ax.axhline(summ["frozen_random_reference"], color="#6e6e6e", ls=":", lw=1.4, label="Frozen Random")
+# Amendment A1: the ladder uses the cached evaluator; Frozen Random comes from the standard path.
+ax.axhline(summ["frozen_random_reference"], color="#6e6e6e", ls=":", lw=1.4, label="Frozen Random (standard path)")
 ax.axvline(summ["k_near_primary"], color="#d55e00", lw=1.0, alpha=0.8, label=f"$k_\\mathrm{{near}}={summ['k_near_primary']}$")
 ax.axvline(summ["case_start_or_end_enters_at_k"], color="#999999", lw=0.9, ls="-.",
            label=f"case-start/end enters ($k={summ['case_start_or_end_enters_at_k']}$)")
