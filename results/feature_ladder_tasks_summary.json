@@ -1,0 +1,39 @@
+{
+  "amendment": "A2 (exploratory); protocols/feature_ladder.md",
+  "caveat_A1": "cached evaluator; compare budgets within a task, not with the main result tables",
+  "tasks": {
+    "next_3_activities": {
+      "metric": "acc",
+      "unit": "accuracy",
+      "higher_is_better": true
+    },
+    "next_5_activities": {
+      "metric": "acc",
+      "unit": "accuracy",
+      "higher_is_better": true
+    },
+    "future_activity_set": {
+      "metric": "micro_f1",
+      "unit": "micro-F1",
+      "higher_is_better": true
+    },
+    "next_time": {
+      "metric": "mae",
+      "unit": "MAE, log1p seconds",
+      "higher_is_better": false
+    },
+    "remaining_time": {
+      "metric": "mae",
+      "unit": "MAE, log1p seconds",
+      "higher_is_better": false
+    },
+    "remaining_count": {
+      "metric": "mae",
+      "unit": "MAE, events",
+      "higher_is_better": false
+    }
+  },
+  "k_near": null,
+  "k_near_note": "A2 defines no per-task k_near threshold",
+  "n_runs": 1440
+}
