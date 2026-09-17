@@ -144,7 +144,7 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float], floa
     S = 1.50
     TXT = round(13 * S)
     plt.rcParams.update({"font.size": TXT})
-    fig, ax = plt.subplots(figsize=(6.89, 5.65))   # height set so w/h matches the descriptor heatmap (1.22), text scaled to read like its 15 pt
+    fig, ax = plt.subplots(figsize=(7.91, 5.65))   # height set so that at 0.35\linewidth it prints as tall as the heatmap at 0.30 (w/h 1.42)
     ax.bar(ks[1:], gain, color="#9ecae1", width=0.7, zorder=1, label="Step gain")
     ax.tick_params(width=0.8 * S, length=3.5 * S)
     for sp in ax.spines.values():
@@ -165,7 +165,7 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float], floa
         sd = [scale * float(rows[task][k]["seedwise_sd"]) for k in ks]
         tx = ax.twinx()
         if i:
-            tx.spines["right"].set_position(("axes", 1.0 + 0.125 * i))
+            tx.spines["right"].set_position(("axes", 1.0 + 0.10 * i))
         h = tx.errorbar(ks, vals, yerr=sd, color=colour, lw=2.0 * S, marker=marker, ms=5 * S, capsize=2.5 * S,
                         elinewidth=1.1 * S, capthick=1.1 * S, zorder=3)
         span = max(vals) - min(vals)
@@ -175,7 +175,7 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float], floa
         hi = max(max(vals) + head * span, ticks[-1] + 0.02 * (ticks[-1] - ticks[0]))
         # the axis is identified by a number; the legend says which task it is
         # below the axis, centred under its tick labels, on the x-axis title's row
-        tx.text(1.0 + 0.125 * i + 0.05, -0.115, f"({i + 1})", transform=ax.transAxes, color=colour,
+        tx.text(1.0 + 0.10 * i + 0.04, -0.115, f"({i + 1})", transform=ax.transAxes, color=colour,
                 ha="center", va="top", fontweight="bold")
         tx.tick_params(axis="y", colors=colour, width=0.8 * S, length=3.5 * S, pad=2)
         tx.spines["right"].set_linewidth(0.8 * S)
