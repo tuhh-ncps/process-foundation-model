@@ -156,13 +156,13 @@ def make_combined(tasks: list[tuple[str, str, str, str]], name: str) -> str:
         sd = [float(rows[task][k]["seedwise_sd"]) for k in ks]
         tx = ax.twinx()
         if i:
-            tx.spines["right"].set_position(("axes", 1.0 + 0.24 * i))
+            tx.spines["right"].set_position(("axes", 1.0 + 0.17 * i))
         h = tx.errorbar(ks, vals, yerr=sd, color=colour, lw=2.0, marker=marker, ms=5, capsize=2.5,
                         elinewidth=1.1, zorder=3)
         span = max(vals) - min(vals)
         tx.set_ylim(min(vals) - 0.75 * span, max(vals) + 0.75 * span)
         # the axis is identified by a number above its spine; the legend says which task it is
-        tx.text(1.0 + 0.24 * i, 1.02, f"({i + 1})", transform=ax.transAxes, color=colour, ha="center",
+        tx.text(1.0 + 0.17 * i, 1.02, f"({i + 1})", transform=ax.transAxes, color=colour, ha="center",
                 va="bottom", fontweight="bold")
         tx.tick_params(axis="y", colors=colour)
         tx.spines["right"].set_color(colour)
