@@ -185,7 +185,7 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float], floa
         tx.text(1.0 + 0.145 * i + 0.06, -0.115, f"({i + 1})", transform=ax.transAxes, color=colour,
                 ha="center", va="top", fontweight="bold")
         tx.tick_params(axis="y", colors=colour, width=2.0 * S, length=5.0 * S, pad=5,   # task axes drawn heavier
-                       labelsize=TXT if i == 0 else round(TXT * 0.8))                  # (2) numbers smaller
+                       labelsize=TXT if i == 0 else 20)                              # (2) numbers smaller
         tx.spines["right"].set_linewidth(2.0 * S)
         tx.spines["right"].set_color(colour)
         tx.spines["top"].set_visible(False)
