@@ -36,7 +36,7 @@ M = np.array([fl.recovered(R_bar, order[:k], fl.RCOND) for k in range(N + 1)])  
 assert np.allclose(M.sum(axis=1)[1:], [s["J"] for s in art["steps"]])           # same J as the frozen artifact
 H = M[:, order].T                                                                # rows in the order added
 
-TXT = 16                                      # ticks and titles share one size
+TXT = 15                                      # ticks and titles share one size
 plt.rcParams.update({"font.size": TXT})
 fig, ax = plt.subplots(figsize=(4.6, 3.8))   # one third of a figure* row
 im = ax.imshow(H, aspect="auto", cmap="Blues", vmin=0, vmax=1)
