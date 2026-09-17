@@ -139,7 +139,7 @@ def make_combined(tasks: list[tuple[str, str, str, str]], name: str) -> str:
     """
     TXT = 15
     plt.rcParams.update({"font.size": TXT})
-    fig, ax = plt.subplots(figsize=(7.2, 4.6))
+    fig, ax = plt.subplots(figsize=(7.2, 5.63))   # height set so w/h matches the descriptor heatmap (1.22)
     ax.bar(ks[1:], gain, color="#9ecae1", width=0.7, zorder=1, label="Step gain")
     ax.plot(ks, J, "o-", color="#0072b2", lw=2.4, ms=5, zorder=4, label="Cum. recon.")
     ax.set_xticks(range(0, N + 1, 3))
