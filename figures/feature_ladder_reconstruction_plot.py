@@ -151,7 +151,7 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float]]], na
     ax.plot(ks, J, "o-", color="#0072b2", lw=2.4 * S, ms=5 * S, zorder=4, label="Cum. recon.")
     ax.set_xticks(range(0, N + 1, 3))
     ax.set_xlim(-0.4, N + 0.4)
-    ax.set_ylim(0, 1.3)                           # headroom above the J line for the legend
+    ax.set_ylim(0, 1.18)                          # headroom above the J line for the upper legend
     ax.set_yticks([0, 0.5, 1.0])
     ax.set_xlabel("# descriptors $k$")
     ax.grid(axis="y", alpha=0.25, lw=0.6 * S)
@@ -171,7 +171,7 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float]]], na
         # extra room above the curves leaves the upper left free for the legend; the range always
         # covers the requested ticks
         lo = min(min(vals) - 0.45 * span, ticks[0] - 0.02 * (ticks[-1] - ticks[0]))
-        hi = max(max(vals) + 1.9 * span, ticks[-1] + 0.02 * (ticks[-1] - ticks[0]))
+        hi = max(max(vals) + 1.4 * span, ticks[-1] + 0.02 * (ticks[-1] - ticks[0]))
         # the axis is identified by a number above its spine; the legend says which task it is
         tx.text(1.0 + 0.15 * i, 1.02, f"({i + 1})", transform=ax.transAxes, color=colour, ha="center",
                 va="bottom", fontweight="bold")
@@ -193,10 +193,14 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float]]], na
                     xytext=(-5, 9), fontsize=13, color="#0072b2", zorder=10,
                     path_effects=[pe.withStroke(linewidth=3.2, foreground="white")])
 
-    leg = tx.legend(handles, labels, fontsize=TXT - 4, loc="upper left", ncol=1, handlelength=1.1,
-                    columnspacing=0.8, handletextpad=0.4, borderpad=0.3, framealpha=0.9, edgecolor="none",
-                    bbox_to_anchor=(0.0, 1.0))
-    leg.set_zorder(20)
+    # Legend in two parts: the reconstruction entries upper left, the task entries lower right.
+    style = dict(fontsize=TXT - 4, ncol=1, handlelength=1.1, handletextpad=0.4, borderpad=0.3,
+                 framealpha=0.9, edgecolor="none")
+    leg1 = tx.legend(handles[:2], labels[:2], loc="upper left", bbox_to_anchor=(0.0, 1.0), **style)
+    leg1.set_zorder(20)
+    tx.add_artist(leg1)                           # a second legend() call would otherwise replace it
+    leg2 = tx.legend(handles[2:], labels[2:], loc="lower right", bbox_to_anchor=(1.0, 0.04), **style)
+    leg2.set_zorder(20)
     fig.tight_layout()
     stem = os.path.join(HERE, f"feature_ladder_recon_{name}")
     fig.savefig(stem + ".pdf", bbox_inches="tight", transparent=True)
