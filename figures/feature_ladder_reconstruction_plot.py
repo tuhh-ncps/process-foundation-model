@@ -137,16 +137,22 @@ def make_combined(tasks: list[tuple[str, str, str, str]], name: str) -> str:
     offset spines. Sized as a half-width subfigure: short titles, large text. Every axis is scaled from its own
     task's data with the same ~2.5x padding as make(), so the curves are comparable in SHAPE only.
     """
-    TXT = 15
+    # This PDF is ~1.6x wider than the descriptor heatmap it sits beside, so LaTeX shrinks it ~1.6x more;
+    # text, lines and markers are scaled by that factor to read at the heatmap's 15 pt.
+    S = 1.45
+    TXT = round(15 * S)
     plt.rcParams.update({"font.size": TXT})
-    fig, ax = plt.subplots(figsize=(7.2, 5.63))   # height set so w/h matches the descriptor heatmap (1.22)
+    fig, ax = plt.subplots(figsize=(7.2, 5.27))   # height set so w/h matches the descriptor heatmap (1.22), text scaled to read like its 15 pt
     ax.bar(ks[1:], gain, color="#9ecae1", width=0.7, zorder=1, label="Step gain")
-    ax.plot(ks, J, "o-", color="#0072b2", lw=2.4, ms=5, zorder=4, label="Cum. recon.")
+    ax.tick_params(width=0.8 * S, length=3.5 * S)
+    for sp in ax.spines.values():
+        sp.set_linewidth(0.8 * S)
+    ax.plot(ks, J, "o-", color="#0072b2", lw=2.4 * S, ms=5 * S, zorder=4, label="Cum. recon.")
     ax.set_xticks(range(0, N + 1, 3))
     ax.set_xlim(-0.4, N + 0.4)
     ax.set_ylim(0, 1.1)
     ax.set_xlabel("# descriptors $k$")
-    ax.grid(axis="y", alpha=0.25, lw=0.6)
+    ax.grid(axis="y", alpha=0.25, lw=0.6 * S)
     ax.set_axisbelow(True)
     ax.spines["top"].set_visible(False)
 
@@ -156,15 +162,16 @@ def make_combined(tasks: list[tuple[str, str, str, str]], name: str) -> str:
         sd = [float(rows[task][k]["seedwise_sd"]) for k in ks]
         tx = ax.twinx()
         if i:
-            tx.spines["right"].set_position(("axes", 1.0 + 0.17 * i))
-        h = tx.errorbar(ks, vals, yerr=sd, color=colour, lw=2.0, marker=marker, ms=5, capsize=2.5,
-                        elinewidth=1.1, zorder=3)
+            tx.spines["right"].set_position(("axes", 1.0 + 0.26 * i))
+        h = tx.errorbar(ks, vals, yerr=sd, color=colour, lw=2.0 * S, marker=marker, ms=5 * S, capsize=2.5 * S,
+                        elinewidth=1.1 * S, capthick=1.1 * S, zorder=3)
         span = max(vals) - min(vals)
         tx.set_ylim(min(vals) - 0.75 * span, max(vals) + 0.75 * span)
         # the axis is identified by a number above its spine; the legend says which task it is
-        tx.text(1.0 + 0.17 * i, 1.02, f"({i + 1})", transform=ax.transAxes, color=colour, ha="center",
+        tx.text(1.0 + 0.26 * i, 1.02, f"({i + 1})", transform=ax.transAxes, color=colour, ha="center",
                 va="bottom", fontweight="bold")
-        tx.tick_params(axis="y", colors=colour)
+        tx.tick_params(axis="y", colors=colour, width=0.8 * S, length=3.5 * S)
+        tx.spines["right"].set_linewidth(0.8 * S)
         tx.spines["right"].set_color(colour)
         tx.spines["top"].set_visible(False)
         tx.grid(False)
@@ -175,12 +182,12 @@ def make_combined(tasks: list[tuple[str, str, str, str]], name: str) -> str:
     # the main axis's data coordinates; the halo keeps them legible where a task curve passes behind.
     for k in range(1, N + 1):
         tx.annotate(art["order_letters"][k - 1], (k, J[k]), xycoords=ax.transData, textcoords="offset points",
-                    xytext=(-4, 9), fontsize=11, color="#0072b2", zorder=10,
-                    path_effects=[pe.withStroke(linewidth=2.2, foreground="white")])
+                    xytext=(-5, 10), fontsize=14, color="#0072b2", zorder=10,
+                    path_effects=[pe.withStroke(linewidth=3.2, foreground="white")])
 
-    fig.legend(handles, labels, fontsize=TXT - 1, frameon=False, loc="lower center", ncol=4,
-               bbox_to_anchor=(0.5, -0.02), handlelength=1.6, columnspacing=1.0)
-    fig.tight_layout(rect=(0, 0.06, 1, 1))
+    fig.legend(handles, labels, fontsize=TXT - 1, frameon=False, loc="lower center", ncol=2,
+               bbox_to_anchor=(0.5, 0.0), handlelength=1.6, columnspacing=1.2)
+    fig.tight_layout(rect=(0, 0.155, 1, 1))
     stem = os.path.join(HERE, f"feature_ladder_recon_{name}")
     fig.savefig(stem + ".pdf", bbox_inches="tight", transparent=True)
     fig.savefig(stem + ".png", dpi=200, bbox_inches="tight", facecolor="white")
