@@ -36,7 +36,8 @@ M = np.array([fl.recovered(R_bar, order[:k], fl.RCOND) for k in range(N + 1)])  
 assert np.allclose(M.sum(axis=1)[1:], [s["J"] for s in art["steps"]])           # same J as the frozen artifact
 H = M[:, order].T                                                                # rows in the order added
 
-plt.rcParams.update({"font.size": 17})
+TXT = 14                                      # ticks and titles share one size
+plt.rcParams.update({"font.size": TXT})
 fig, ax = plt.subplots(figsize=(4.6, 3.8))   # one third of a figure* row
 im = ax.imshow(H, aspect="auto", cmap="Blues", vmin=0, vmax=1)
 for i, f in enumerate(order):
@@ -44,9 +45,11 @@ for i, f in enumerate(order):
 ax.set_yticks(range(N))
 ax.set_yticklabels([fl.LETTER[fl.NAMES[f]] for f in order], fontsize=12)
 ax.set_xticks(range(0, N + 1, 3))
-ax.set_xlabel("# descriptors $k$", fontsize=12)
+ax.set_xlabel("# descriptors $k$", fontsize=TXT)
 cb = fig.colorbar(im, ax=ax, fraction=0.06, pad=0.03)
-cb.set_label("$R^2$", fontsize=12)
+cb.set_label("$R^2$", fontsize=TXT)
+cb.ax.tick_params(labelsize=TXT)
+ax.tick_params(axis="x", labelsize=TXT)
 
 fig.tight_layout()
 stem = os.path.join(HERE, "feature_ladder_descriptor_heatmap")
