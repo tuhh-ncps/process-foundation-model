@@ -131,10 +131,10 @@ def make(task: str) -> str:
             f"{min(acc) - 0.75 * span:.4f}..{max(acc) + 0.75 * span:.4f}  max SD {max(sd):.4f}")
 
 
-def make_combined(tasks: list[tuple[str, str, str, str]], name: str) -> str:
+def make_combined(tasks: list[tuple[str, str, str, str, float, list[float]]], name: str) -> str:
     """J(F_k)/15 and the gain bars, plus several task curves, each on its own right-hand axis.
 
-    tasks: (task key, colour, marker, short axis title); the first uses the inner right axis, later ones get
+    tasks: (task key, colour, marker, short legend name, value scale, tick values); the first uses the inner right axis, later ones get
     offset spines. Sized as a half-width subfigure: short titles, large text. Every axis is scaled from its own
     task's data with the same ~2.5x padding as make(), so the curves are comparable in SHAPE only.
     """
@@ -159,17 +159,19 @@ def make_combined(tasks: list[tuple[str, str, str, str]], name: str) -> str:
     ax.spines["top"].set_visible(False)
 
     handles, labels = ax.get_legend_handles_labels()
-    for i, (task, colour, marker, short) in enumerate(tasks):
-        vals = [float(rows[task][k]["mu"]) for k in ks]
-        sd = [float(rows[task][k]["seedwise_sd"]) for k in ks]
+    for i, (task, colour, marker, short, scale, ticks) in enumerate(tasks):
+        vals = [scale * float(rows[task][k]["mu"]) for k in ks]
+        sd = [scale * float(rows[task][k]["seedwise_sd"]) for k in ks]
         tx = ax.twinx()
         if i:
             tx.spines["right"].set_position(("axes", 1.0 + 0.26 * i))
         h = tx.errorbar(ks, vals, yerr=sd, color=colour, lw=2.0 * S, marker=marker, ms=5 * S, capsize=2.5 * S,
                         elinewidth=1.1 * S, capthick=1.1 * S, zorder=3)
         span = max(vals) - min(vals)
-        # extra room above the curves leaves the upper left free for the legend
-        tx.set_ylim(min(vals) - 0.45 * span, max(vals) + 1.9 * span)
+        # extra room above the curves leaves the upper left free for the legend; the range always
+        # covers the requested ticks
+        lo = min(min(vals) - 0.45 * span, ticks[0] - 0.02 * (ticks[-1] - ticks[0]))
+        hi = max(max(vals) + 1.9 * span, ticks[-1] + 0.02 * (ticks[-1] - ticks[0]))
         # the axis is identified by a number above its spine; the legend says which task it is
         tx.text(1.0 + 0.26 * i, 1.02, f"({i + 1})", transform=ax.transAxes, color=colour, ha="center",
                 va="bottom", fontweight="bold")
@@ -177,8 +179,9 @@ def make_combined(tasks: list[tuple[str, str, str, str]], name: str) -> str:
         tx.spines["right"].set_linewidth(0.8 * S)
         tx.spines["right"].set_color(colour)
         tx.spines["top"].set_visible(False)
-        tx.set_yticks(MaxNLocator(nbins=3).tick_values(min(vals), max(vals)))   # ticks where the data is
-        tx.set_ylim(min(vals) - 0.45 * span, max(vals) + 1.9 * span)
+        tx.set_ylim(lo, hi)
+        tx.set_yticks(ticks)
+        tx.set_yticklabels([f"{t:g}" if scale != 1 else f"{t:.1f}" for t in ticks])
         tx.grid(False)
         handles.append(h)
         labels.append(f"({i + 1}) {short}")
@@ -204,5 +207,6 @@ def make_combined(tasks: list[tuple[str, str, str, str]], name: str) -> str:
 for task in TASKS:
     print(make(task))
 print(f"wrote {len(TASKS)} figures: feature_ladder_recon_<task>.pdf / .png")
-print("wrote", make_combined([("next_activity", CURVE, "s", "Acc."), ("remaining_time", "#009e73", "D", "MAE")],
+print("wrote", make_combined([("next_activity", CURVE, "s", "Acc. (%)", 100, [65, 70, 75]),
+                              ("remaining_time", "#009e73", "D", "MAE", 1, [5.5, 6.0, 6.5, 7.0])],
                              "next_activity_remaining_time"))
