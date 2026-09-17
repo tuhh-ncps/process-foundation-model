@@ -44,9 +44,9 @@ for i, f in enumerate(order):
 ax.set_yticks(range(N))
 ax.set_yticklabels([fl.LETTER[fl.NAMES[f]] for f in order], fontsize=12)
 ax.set_xticks(range(0, N + 1, 3))
-ax.set_xlabel("# descriptors $k$")
+ax.set_xlabel("# descriptors $k$", fontsize=12)
 cb = fig.colorbar(im, ax=ax, fraction=0.06, pad=0.03)
-cb.set_label("$R^2$")
+cb.set_label("$R^2$", fontsize=12)
 
 fig.tight_layout()
 stem = os.path.join(HERE, "feature_ladder_descriptor_heatmap")
