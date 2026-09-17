@@ -190,5 +190,5 @@ def make_combined(tasks: list[tuple[str, str, str, str]], name: str) -> str:
 for task in TASKS:
     print(make(task))
 print(f"wrote {len(TASKS)} figures: feature_ladder_recon_<task>.pdf / .png")
-print("wrote", make_combined([("next_activity", CURVE, "s", "NA acc."), ("remaining_time", "#009e73", "D", "RT MAE")],
+print("wrote", make_combined([("next_activity", CURVE, "s", "Acc."), ("remaining_time", "#009e73", "D", "MAE")],
                              "next_activity_remaining_time"))
