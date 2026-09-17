@@ -140,13 +140,12 @@ def make_combined(tasks: list[tuple[str, str, str, str]], name: str) -> str:
     TXT = 15
     plt.rcParams.update({"font.size": TXT})
     fig, ax = plt.subplots(figsize=(7.2, 4.6))
-    ax.bar(ks[1:], gain, color="#9ecae1", width=0.7, zorder=1, label="$\\Delta J/15$")
-    ax.plot(ks, J, "o-", color="#0072b2", lw=2.4, ms=5, zorder=4, label="$J(F_k)/15$")
+    ax.bar(ks[1:], gain, color="#9ecae1", width=0.7, zorder=1, label="Step gain")
+    ax.plot(ks, J, "o-", color="#0072b2", lw=2.4, ms=5, zorder=4, label="Cum. recon.")
     ax.set_xticks(range(0, N + 1, 3))
     ax.set_xlim(-0.4, N + 0.4)
     ax.set_ylim(0, 1.1)
     ax.set_xlabel("# descriptors $k$")
-    ax.set_ylabel("$J(F_k)/15$")
     ax.grid(axis="y", alpha=0.25, lw=0.6)
     ax.set_axisbelow(True)
     ax.spines["top"].set_visible(False)
@@ -162,13 +161,15 @@ def make_combined(tasks: list[tuple[str, str, str, str]], name: str) -> str:
                         elinewidth=1.1, zorder=3)
         span = max(vals) - min(vals)
         tx.set_ylim(min(vals) - 0.75 * span, max(vals) + 0.75 * span)
-        tx.set_ylabel(short, color=colour)
+        # the axis is identified by a number above its spine; the legend says which task it is
+        tx.text(1.0 + 0.24 * i, 1.02, f"({i + 1})", transform=ax.transAxes, color=colour, ha="center",
+                va="bottom", fontweight="bold")
         tx.tick_params(axis="y", colors=colour)
         tx.spines["right"].set_color(colour)
         tx.spines["top"].set_visible(False)
         tx.grid(False)
         handles.append(h)
-        labels.append(short)
+        labels.append(f"({i + 1}) {short}")
 
     # Twin axes draw over the main one whatever the zorder, so the letters go on the topmost axis, placed in
     # the main axis's data coordinates; the halo keeps them legible where a task curve passes behind.
