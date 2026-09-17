@@ -139,12 +139,18 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float], floa
     offset spines. Sized as a half-width subfigure: short titles, large text. Every axis is scaled from its own
     task's data with the same ~2.5x padding as make(), so the curves are comparable in SHAPE only.
     """
-    # This PDF is ~1.6x wider than the descriptor heatmap it sits beside, so LaTeX shrinks it ~1.6x more;
-    # text, lines and markers are scaled by that factor; TXT prints at ~13 pt beside it.
-    S = 1.50
-    TXT = round(13 * S)
+    # Layout is tied to the descriptor heatmap it sits beside in the paper: (a) at 0.30\linewidth, this at
+    # 0.35\linewidth. The canvas is the heatmap's PDF scaled by S (width also by the slot ratio), so both print
+    # at the same height and TXT prints at the heatmap's 15 pt; y = 0 and y = 1 sit at the same heights as the
+    # heatmap colour bar's 0 and 1 (fractions of PDF height from the top, measured from its PDF).
+    A_W, A_H = 4.3057, 3.5329                     # heatmap PDF, inches
+    A_Y1, A_Y0 = 0.0507, 0.8085                   # colour-bar 1.0 and 0.0, from the top (PDF renderer)
+    SLOT = 0.35 / 0.30
+    S = 1.469
+    TXT = round(15 * S)
+    Y_TOP = 1.04                                  # just enough room above J = 1 for the top letters
     plt.rcParams.update({"font.size": TXT})
-    fig, ax = plt.subplots(figsize=(7.91, 5.65))   # height set so that at 0.35\linewidth it prints as tall as the heatmap at 0.30 (w/h 1.42)
+    fig, ax = plt.subplots(figsize=(S * A_W * SLOT, S * A_H))
     ax.bar(ks[1:], gain, color="#9ecae1", width=0.7, zorder=1, label="Step gain")
     ax.tick_params(width=0.8 * S, length=3.5 * S)
     for sp in ax.spines.values():
@@ -152,7 +158,7 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float], floa
     ax.plot(ks, J, "o-", color="#0072b2", lw=2.4 * S, ms=5 * S, zorder=4, label="Cum. recon.")
     ax.set_xticks(range(0, N + 1, 3))
     ax.set_xlim(-0.4, N + 0.4)
-    ax.set_ylim(0, 1.18)                          # headroom above the J line for the upper legend
+    ax.set_ylim(0, Y_TOP)
     ax.set_yticks([0, 0.5, 1.0])
     ax.set_xlabel("# descriptors $k$")
     ax.grid(axis="y", alpha=0.25, lw=0.6 * S)
@@ -165,7 +171,7 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float], floa
         sd = [scale * float(rows[task][k]["seedwise_sd"]) for k in ks]
         tx = ax.twinx()
         if i:
-            tx.spines["right"].set_position(("axes", 1.0 + 0.10 * i))
+            tx.spines["right"].set_position(("axes", 1.0 + 0.145 * i))
         h = tx.errorbar(ks, vals, yerr=sd, color=colour, lw=2.0 * S, marker=marker, ms=5 * S, capsize=2.5 * S,
                         elinewidth=1.1 * S, capthick=1.1 * S, zorder=3)
         span = max(vals) - min(vals)
@@ -175,9 +181,9 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float], floa
         hi = max(max(vals) + head * span, ticks[-1] + 0.02 * (ticks[-1] - ticks[0]))
         # the axis is identified by a number; the legend says which task it is
         # below the axis, centred under its tick labels, on the x-axis title's row
-        tx.text(1.0 + 0.10 * i + 0.04, -0.115, f"({i + 1})", transform=ax.transAxes, color=colour,
+        tx.text(1.0 + 0.145 * i + 0.06, -0.115, f"({i + 1})", transform=ax.transAxes, color=colour,
                 ha="center", va="top", fontweight="bold")
-        tx.tick_params(axis="y", colors=colour, width=0.8 * S, length=3.5 * S, pad=2)
+        tx.tick_params(axis="y", colors=colour, width=0.8 * S, length=3.5 * S, pad=5)
         tx.spines["right"].set_linewidth(0.8 * S)
         tx.spines["right"].set_color(colour)
         tx.spines["top"].set_visible(False)
@@ -192,7 +198,7 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float], floa
     # the main axis's data coordinates; the halo keeps them legible where a task curve passes behind.
     for k in range(1, N + 1):
         tx.annotate(art["order_letters"][k - 1], (k, J[k]), xycoords=ax.transData, textcoords="offset points",
-                    xytext=(-5, 9), fontsize=13, color="#0072b2", zorder=10,
+                    xytext=(-9, 5), fontsize=13, color="#0072b2", zorder=10,
                     path_effects=[pe.withStroke(linewidth=3.2, foreground="white")])
 
     # Legend in two parts: the reconstruction entries upper left, the task entries lower right.
@@ -203,10 +209,15 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float], floa
     tx.add_artist(leg1)                           # a second legend() call would otherwise replace it
     leg2 = tx.legend(handles[2:], labels[2:], loc="lower right", bbox_to_anchor=(1.0, 0.04), **style)
     leg2.set_zorder(20)
-    fig.tight_layout()
+    fig.tight_layout()                            # horizontal margins only; the vertical ones are fixed below
+    bottom = 1 - A_Y0
+    top = bottom + ((1 - A_Y1) - bottom) * Y_TOP
+    for a in fig.axes:
+        pos = a.get_position()
+        a.set_position([pos.x0, bottom, pos.width, top - bottom])
     stem = os.path.join(HERE, f"feature_ladder_recon_{name}")
-    fig.savefig(stem + ".pdf", bbox_inches="tight", transparent=True)
-    fig.savefig(stem + ".png", dpi=200, bbox_inches="tight", facecolor="white")
+    fig.savefig(stem + ".pdf", transparent=True)  # fixed canvas: no tight bbox, or the alignment would shift
+    fig.savefig(stem + ".png", dpi=200, facecolor="white")
     plt.close(fig)
     return stem
 
