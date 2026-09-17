@@ -211,12 +211,23 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float], floa
     tx.add_artist(leg1)                           # a second legend() call would otherwise replace it
     leg2 = tx.legend(handles[2:], labels[2:], loc="lower right", bbox_to_anchor=(1.0, 0.04), **style)
     leg2.set_zorder(20)
-    fig.tight_layout()                            # horizontal margins only; the vertical ones are fixed below
+    fig.tight_layout()                            # starting point; both margins are fixed below
     bottom = 1 - A_Y0
     top = bottom + ((1 - A_Y1) - bottom) * Y_TOP
     for a in fig.axes:
         pos = a.get_position()
         a.set_position([pos.x0, bottom, pos.width, top - bottom])
+    # Horizontally, the content runs edge to edge, so the "Mean R^2" title starts where the subfigure (and its
+    # caption) starts.
+    W = fig.get_figwidth()
+    for _ in range(6):
+        fig.canvas.draw()
+        bb = fig.get_tightbbox(fig.canvas.get_renderer())       # inches
+        left, right = bb.x0 - 0.01, W - bb.x1 - 0.01
+        if abs(left) < 0.002 and abs(right) < 0.002:
+            break
+        pos = ax.get_position()                   # twin axes follow the main axis's position
+        ax.set_position([pos.x0 - left / W, pos.y0, pos.width + (left + right) / W, pos.height])
     stem = os.path.join(HERE, f"feature_ladder_recon_{name}")
     fig.savefig(stem + ".pdf", transparent=True)  # fixed canvas: no tight bbox, or the alignment would shift
     fig.savefig(stem + ".png", dpi=200, facecolor="white")
