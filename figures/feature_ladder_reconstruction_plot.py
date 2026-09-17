@@ -131,10 +131,11 @@ def make(task: str) -> str:
             f"{min(acc) - 0.75 * span:.4f}..{max(acc) + 0.75 * span:.4f}  max SD {max(sd):.4f}")
 
 
-def make_combined(tasks: list[tuple[str, str, str, str, float, list[float]]], name: str) -> str:
+def make_combined(tasks: list[tuple[str, str, str, str, float, list[float], float]], name: str) -> str:
     """J(F_k)/15 and the gain bars, plus several task curves, each on its own right-hand axis.
 
-    tasks: (task key, colour, marker, short legend name, value scale, tick values); the first uses the inner right axis, later ones get
+    tasks: (task key, colour, marker, short legend name, value scale, tick values, headroom above the curve in
+    units of its data span -- smaller puts the curve higher); the first uses the inner right axis, later ones get
     offset spines. Sized as a half-width subfigure: short titles, large text. Every axis is scaled from its own
     task's data with the same ~2.5x padding as make(), so the curves are comparable in SHAPE only.
     """
@@ -159,7 +160,7 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float]]], na
     ax.spines["top"].set_visible(False)
 
     handles, labels = ax.get_legend_handles_labels()
-    for i, (task, colour, marker, short, scale, ticks) in enumerate(tasks):
+    for i, (task, colour, marker, short, scale, ticks, head) in enumerate(tasks):
         vals = [scale * float(rows[task][k]["mu"]) for k in ks]
         sd = [scale * float(rows[task][k]["seedwise_sd"]) for k in ks]
         tx = ax.twinx()
@@ -171,7 +172,7 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float]]], na
         # extra room above the curves leaves the upper left free for the legend; the range always
         # covers the requested ticks
         lo = min(min(vals) - 0.45 * span, ticks[0] - 0.02 * (ticks[-1] - ticks[0]))
-        hi = max(max(vals) + 1.4 * span, ticks[-1] + 0.02 * (ticks[-1] - ticks[0]))
+        hi = max(max(vals) + head * span, ticks[-1] + 0.02 * (ticks[-1] - ticks[0]))
         # the axis is identified by a number above its spine; the legend says which task it is
         tx.text(1.0 + 0.15 * i, 1.02, f"({i + 1})", transform=ax.transAxes, color=colour, ha="center",
                 va="bottom", fontweight="bold")
@@ -211,6 +212,6 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float]]], na
 for task in TASKS:
     print(make(task))
 print(f"wrote {len(TASKS)} figures: feature_ladder_recon_<task>.pdf / .png")
-print("wrote", make_combined([("next_activity", CURVE, "s", "Acc. (%)", 100, [65, 70, 75]),
-                              ("remaining_time", "#009e73", "D", "MAE", 1, [5.5, 6.0, 6.5, 7.0])],
+print("wrote", make_combined([("next_activity", CURVE, "s", "Acc. (%)", 100, [65, 70, 75], 0.7),
+                              ("remaining_time", "#009e73", "D", "MAE", 1, [5.5, 6.0, 6.5, 7.0], 1.4)],
                              "next_activity_remaining_time"))
