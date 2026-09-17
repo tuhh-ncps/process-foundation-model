@@ -155,7 +155,6 @@ def make_combined(tasks: list[tuple[str, str, str]], name: str) -> str:
     ax.spines["top"].set_visible(False)
 
     handles, labels = ax.get_legend_handles_labels()
-    notes = []
     for i, (task, colour, marker) in enumerate(tasks):
         title_bit, ylab, lower_better = TASKS[task]
         vals = [float(rows[task][k]["mu"]) for k in ks]
@@ -174,15 +173,9 @@ def make_combined(tasks: list[tuple[str, str, str]], name: str) -> str:
         tx.grid(False)
         handles.append(h)
         labels.append(f"{title_bit} (mean $\\pm$ SD over eval seeds)")
-        if lower_better:
-            notes.append(f"{title_bit}: {level_note(task)}")
 
     fig.legend(handles, labels, fontsize=9.5, frameon=False, loc="lower center", ncol=2,
                bbox_to_anchor=(0.5, -0.04))
-    ax.set_title("Fingerprint reconstruction, " + " and ".join(TASKS[t][0] for t, _, _ in tasks) + " vs $k$",
-                 pad=22)
-    if notes:
-        ax.text(0.0, 1.008, "; ".join(notes), transform=ax.transAxes, fontsize=8.5, color="#666666")
     fig.tight_layout(rect=(0, 0.10, 1, 1))
     stem = os.path.join(HERE, f"feature_ladder_recon_{name}")
     fig.savefig(stem + ".pdf", bbox_inches="tight", transparent=True)
