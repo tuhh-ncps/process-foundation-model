@@ -151,7 +151,12 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float]]], na
     ax.plot(ks, J, "o-", color="#0072b2", lw=2.4 * S, ms=5 * S, zorder=4, label="Cum. recon.")
     ax.set_xticks(range(0, N + 1, 3))
     ax.set_xlim(-0.4, N + 0.4)
-    ax.set_ylim(0, 1.18)                          # headroom above the J line for the upper legend
+    # The axes start below zero, leaving an empty strip along the bottom for the two legend parts; the
+    # left spine is drawn only over the data range.
+    Y0, Y1 = -0.30, 1.12
+    ax.set_ylim(Y0, Y1)
+    ax.spines["left"].set_bounds(0, Y1)
+    ax.spines["right"].set_visible(False)         # the task axes draw their own right spines
     ax.set_yticks([0, 0.5, 1.0])
     ax.set_xlabel("# descriptors $k$")
     ax.grid(axis="y", alpha=0.25, lw=0.6 * S)
@@ -168,10 +173,13 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float]]], na
         h = tx.errorbar(ks, vals, yerr=sd, color=colour, lw=2.0 * S, marker=marker, ms=5 * S, capsize=2.5 * S,
                         elinewidth=1.1 * S, capthick=1.1 * S, zorder=3)
         span = max(vals) - min(vals)
-        # extra room above the curves leaves the upper left free for the legend; the range always
-        # covers the requested ticks
-        lo = min(min(vals) - 0.45 * span, ticks[0] - 0.02 * (ticks[-1] - ticks[0]))
-        hi = max(max(vals) + 1.4 * span, ticks[-1] + 0.02 * (ticks[-1] - ticks[0]))
+        # Lowest tick level with J = 0, highest with J = 1, so the task axes share the left axis's grid
+        # and the bottom strip stays free for the legends.
+        assert ticks[0] <= min(vals) and max(vals) <= ticks[-1], (task, min(vals), max(vals))
+        f0, f1 = (0 - Y0) / (Y1 - Y0), (1 - Y0) / (Y1 - Y0)
+        rng = (ticks[-1] - ticks[0]) / (f1 - f0)
+        lo = ticks[0] - f0 * rng
+        hi = lo + rng
         # the axis is identified by a number above its spine; the legend says which task it is
         tx.text(1.0 + 0.15 * i, 1.02, f"({i + 1})", transform=ax.transAxes, color=colour, ha="center",
                 va="bottom", fontweight="bold")
@@ -179,7 +187,9 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float]]], na
         tx.spines["right"].set_linewidth(0.8 * S)
         tx.spines["right"].set_color(colour)
         tx.spines["top"].set_visible(False)
+        tx.spines["left"].set_visible(False)      # else it redraws the full-height left border
         tx.set_ylim(lo, hi)
+        tx.spines["right"].set_bounds(ticks[0], hi)
         tx.set_yticks(ticks)
         tx.set_yticklabels([f"{t:g}" if scale != 1 else f"{t:.1f}" for t in ticks])
         tx.grid(False)
@@ -193,13 +203,13 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float]]], na
                     xytext=(-5, 9), fontsize=13, color="#0072b2", zorder=10,
                     path_effects=[pe.withStroke(linewidth=3.2, foreground="white")])
 
-    # Legend in two parts: the reconstruction entries upper left, the task entries lower right.
+    # Legend in two parts along the bottom strip: reconstruction entries left, task entries right.
     style = dict(fontsize=TXT - 4, ncol=1, handlelength=1.1, handletextpad=0.4, borderpad=0.3,
                  framealpha=0.9, edgecolor="none")
-    leg1 = tx.legend(handles[:2], labels[:2], loc="upper left", bbox_to_anchor=(0.0, 1.0), **style)
+    leg1 = tx.legend(handles[:2], labels[:2], loc="lower left", bbox_to_anchor=(0.0, 0.0), **style)
     leg1.set_zorder(20)
     tx.add_artist(leg1)                           # a second legend() call would otherwise replace it
-    leg2 = tx.legend(handles[2:], labels[2:], loc="lower right", bbox_to_anchor=(1.0, 0.04), **style)
+    leg2 = tx.legend(handles[2:], labels[2:], loc="lower right", bbox_to_anchor=(1.0, 0.0), **style)
     leg2.set_zorder(20)
     fig.tight_layout()
     stem = os.path.join(HERE, f"feature_ladder_recon_{name}")
