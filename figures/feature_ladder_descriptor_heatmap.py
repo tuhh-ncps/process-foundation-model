@@ -37,12 +37,12 @@ assert np.allclose(M.sum(axis=1)[1:], [s["J"] for s in art["steps"]])           
 H = M[:, order].T                                                                # rows in the order added
 
 plt.rcParams.update({"font.size": 17})
-fig, ax = plt.subplots(figsize=(4.6, 4.4))   # one third of a figure* row: narrow and tall
+fig, ax = plt.subplots(figsize=(4.6, 3.8))   # one third of a figure* row
 im = ax.imshow(H, aspect="auto", cmap="Blues", vmin=0, vmax=1)
 for i, f in enumerate(order):
     ax.add_patch(plt.Rectangle((i + 1 - 0.5, i - 0.5), 1, 1, fill=False, ec="#d55e00", lw=1.4))
 ax.set_yticks(range(N))
-ax.set_yticklabels([fl.LETTER[fl.NAMES[f]] for f in order], fontsize=14)
+ax.set_yticklabels([fl.LETTER[fl.NAMES[f]] for f in order], fontsize=12)
 ax.set_xticks(range(0, N + 1, 3))
 ax.set_xlabel("# descriptors $k$")
 cb = fig.colorbar(im, ax=ax, fraction=0.06, pad=0.03)
