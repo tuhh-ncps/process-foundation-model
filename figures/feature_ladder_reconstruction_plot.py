@@ -139,13 +139,13 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float], floa
     offset spines. Sized as a half-width subfigure: short titles, large text. Every axis is scaled from its own
     task's data with the same ~2.5x padding as make(), so the curves are comparable in SHAPE only.
     """
-    # Layout is tied to the descriptor heatmap it sits beside in the paper: (a) at 0.30\linewidth, this at
-    # 0.35\linewidth. The canvas is the heatmap's PDF scaled by S (width also by the slot ratio), so both print
+    # Layout is tied to the descriptor heatmap it sits beside in the paper: (a) at 0.32\linewidth, this at
+    # 0.37\linewidth. The canvas is the heatmap's PDF scaled by S (width also by the slot ratio), so both print
     # at the same height and TXT prints at the heatmap's 15 pt; y = 0 and y = 1 sit at the same heights as the
     # heatmap colour bar's 0 and 1 (fractions of PDF height from the top, measured from its PDF).
     A_W, A_H = 4.3057, 3.5329                     # heatmap PDF, inches
     A_Y1, A_Y0 = 0.0507, 0.8085                   # colour-bar 1.0 and 0.0, from the top (PDF renderer)
-    SLOT = 0.35 / 0.30
+    SLOT = 0.37 / 0.32
     S = 1.469
     TXT = round(15 * S)
     Y_TOP = 1.04                                  # just enough room above J = 1 for the top letters
