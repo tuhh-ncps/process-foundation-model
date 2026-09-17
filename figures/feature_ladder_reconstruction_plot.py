@@ -188,6 +188,11 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float], floa
                        labelsize=TXT if i == 0 else 21)                              # (2) numbers smaller
         tx.spines["right"].set_linewidth(2.0 * S)
         tx.spines["right"].set_color(colour)
+        # arrowhead at the "better" end of the spine: up for accuracy, down for MAE
+        lower_better = TASKS[task][2]
+        xs = 1.0 + (0.145 * i if i else 0.0)
+        tx.plot([xs], [0.0 if lower_better else 1.0], marker="v" if lower_better else "^", ms=9 * S,
+                color=colour, transform=ax.transAxes, clip_on=False, zorder=12)
         tx.spines["top"].set_visible(False)
         tx.set_ylim(lo, hi)
         tx.set_yticks(ticks)
@@ -198,18 +203,22 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float], floa
 
     # Twin axes draw over the main one whatever the zorder, so the letters go on the topmost axis, placed in
     # the main axis's data coordinates; the halo keeps them legible where a task curve passes behind.
+    OFFSET = {"M": (5, -19)}                      # below-right: the k = 7 accuracy point sits just above M
     for k in range(1, N + 1):
-        tx.annotate(art["order_letters"][k - 1], (k, J[k]), xycoords=ax.transData, textcoords="offset points",
-                    xytext=(-9, 5), fontsize=13, color="#0072b2", zorder=10,
+        letter = art["order_letters"][k - 1]
+        tx.annotate(letter, (k, J[k]), xycoords=ax.transData, textcoords="offset points",
+                    xytext=OFFSET.get(letter, (-9, 5)), fontsize=13, color="#0072b2", zorder=10,
                     path_effects=[pe.withStroke(linewidth=3.2, foreground="white")])
 
     # Legend in two parts: the reconstruction entries upper left, the task entries lower right.
     style = dict(fontsize=TXT - 2, ncol=1, handlelength=1.1, handletextpad=0.4, borderpad=0.3,
                  framealpha=0.9, edgecolor="none")
-    leg1 = tx.legend(handles[:2], labels[:2], loc="upper left", bbox_to_anchor=(0.0, 0.94), **style)
+    leg1 = tx.legend(handles[:2], labels[:2], loc="upper left", bbox_to_anchor=(0.0, 0.94),
+                     **{**style, "framealpha": 0.0})   # its box would fade the k = 7 accuracy point
     leg1.set_zorder(20)
     tx.add_artist(leg1)                           # a second legend() call would otherwise replace it
-    leg2 = tx.legend(handles[2:], labels[2:], loc="lower right", bbox_to_anchor=(1.0, 0.02), **style)
+    leg2 = tx.legend(handles[2:], labels[2:], loc="lower right", bbox_to_anchor=(0.86, 0.02),   # left of the k = 14 MAE dip
+                     **{**style, "framealpha": 0.0})                     # no background over the bars
     leg2.set_zorder(20)
     fig.tight_layout()                            # starting point; both margins are fixed below
     bottom = 1 - A_Y0
@@ -237,6 +246,6 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float], floa
 for task in TASKS:
     print(make(task))
 print(f"wrote {len(TASKS)} figures: feature_ladder_recon_<task>.pdf / .png")
-print("wrote", make_combined([("next_activity", CURVE, "s", "Acc. (%)", 100, [65, 70, 75], 0.7),
-                              ("remaining_time", "#009e73", "D", "MAE", 1, [5.5, 6.0, 6.5, 7.0], 1.4)],
+print("wrote", make_combined([("next_activity", CURVE, "s", "Acc. (%)", 100, [65, 70, 75], 0.3),
+                              ("remaining_time", "#009e73", "D", "MAE", 1, [5.5, 6.0, 6.5, 7.0], 1.9)],
                              "next_activity_remaining_time"))
