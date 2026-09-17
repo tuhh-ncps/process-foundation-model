@@ -130,62 +130,64 @@ def make(task: str) -> str:
             f"{min(acc) - 0.75 * span:.4f}..{max(acc) + 0.75 * span:.4f}  max SD {max(sd):.4f}")
 
 
-def make_combined(tasks: list[tuple[str, str, str]], name: str) -> str:
+def make_combined(tasks: list[tuple[str, str, str, str]], name: str) -> str:
     """J(F_k)/15 and the gain bars, plus several task curves, each on its own right-hand axis.
 
-    tasks: (task key, colour, marker); the first uses the inner right axis, later ones get offset spines.
-    Every axis is scaled from its own task's data with the same ~2.5x padding as make(), so the curves are
-    comparable in SHAPE only.
+    tasks: (task key, colour, marker, short axis title); the first uses the inner right axis, later ones get
+    offset spines. Sized as a half-width subfigure: short titles, large text. Every axis is scaled from its own
+    task's data with the same ~2.5x padding as make(), so the curves are comparable in SHAPE only.
     """
-    plt.rcParams.update({"font.size": 11})
-    fig, ax = plt.subplots(figsize=(10.2, 5.8))
-    ax.bar(ks[1:], gain, color="#9ecae1", width=0.7, zorder=1, label="gain at step $k$, $\\Delta J/15$")
-    ax.plot(ks, J, "o-", color="#0072b2", lw=2.4, ms=5, zorder=4, label="frozen order, $J(F_k)/15$")
-    for k in range(1, N + 1):
-        ax.annotate(art["order_letters"][k - 1], (k, J[k]), textcoords="offset points", xytext=(-3, 13),
-                    fontsize=8.5, color="#0072b2", zorder=5,
-                    path_effects=[pe.withStroke(linewidth=3.4, foreground="white")])
-    ax.set_xticks(ks)
+    TXT = 15
+    plt.rcParams.update({"font.size": TXT})
+    fig, ax = plt.subplots(figsize=(7.2, 4.6))
+    ax.bar(ks[1:], gain, color="#9ecae1", width=0.7, zorder=1, label="$\\Delta J/15$")
+    ax.plot(ks, J, "o-", color="#0072b2", lw=2.4, ms=5, zorder=4, label="$J(F_k)/15$")
+    ax.set_xticks(range(0, N + 1, 3))
     ax.set_xlim(-0.4, N + 0.4)
-    ax.set_ylim(0, 1.08)
-    ax.set_xlabel("number of fingerprint descriptors $k$ (letters = descriptor added)")
-    ax.set_ylabel("fraction of standardised fingerprint variance reconstructed")
+    ax.set_ylim(0, 1.1)
+    ax.set_xlabel("# descriptors $k$")
+    ax.set_ylabel("$J(F_k)/15$")
     ax.grid(axis="y", alpha=0.25, lw=0.6)
     ax.set_axisbelow(True)
     ax.spines["top"].set_visible(False)
 
     handles, labels = ax.get_legend_handles_labels()
-    for i, (task, colour, marker) in enumerate(tasks):
-        title_bit, ylab, lower_better = TASKS[task]
+    for i, (task, colour, marker, short) in enumerate(tasks):
         vals = [float(rows[task][k]["mu"]) for k in ks]
         sd = [float(rows[task][k]["seedwise_sd"]) for k in ks]
         tx = ax.twinx()
         if i:
-            tx.spines["right"].set_position(("axes", 1.0 + 0.15 * i))
-        h = tx.errorbar(ks, vals, yerr=sd, color=colour, lw=2.0, marker=marker, ms=5, capsize=3,
-                        elinewidth=1.2, zorder=3)
+            tx.spines["right"].set_position(("axes", 1.0 + 0.24 * i))
+        h = tx.errorbar(ks, vals, yerr=sd, color=colour, lw=2.0, marker=marker, ms=5, capsize=2.5,
+                        elinewidth=1.1, zorder=3)
         span = max(vals) - min(vals)
         tx.set_ylim(min(vals) - 0.75 * span, max(vals) + 0.75 * span)
-        tx.set_ylabel(ylab + ("\n(lower is better)" if lower_better else ""), color=colour)
+        tx.set_ylabel(short, color=colour)
         tx.tick_params(axis="y", colors=colour)
         tx.spines["right"].set_color(colour)
         tx.spines["top"].set_visible(False)
         tx.grid(False)
         handles.append(h)
-        labels.append(f"{title_bit} (mean $\\pm$ SD over eval seeds)")
+        labels.append(short)
 
-    fig.legend(handles, labels, fontsize=9.5, frameon=False, loc="lower center", ncol=2,
-               bbox_to_anchor=(0.5, -0.04))
-    fig.tight_layout(rect=(0, 0.10, 1, 1))
+    # Twin axes draw over the main one whatever the zorder, so the letters go on the topmost axis, placed in
+    # the main axis's data coordinates; the halo keeps them legible where a task curve passes behind.
+    for k in range(1, N + 1):
+        tx.annotate(art["order_letters"][k - 1], (k, J[k]), xycoords=ax.transData, textcoords="offset points",
+                    xytext=(-4, 9), fontsize=11, color="#0072b2", zorder=10,
+                    path_effects=[pe.withStroke(linewidth=2.2, foreground="white")])
+
+    fig.legend(handles, labels, fontsize=TXT - 1, frameon=False, loc="lower center", ncol=4,
+               bbox_to_anchor=(0.5, -0.02), handlelength=1.6, columnspacing=1.0)
+    fig.tight_layout(rect=(0, 0.06, 1, 1))
     stem = os.path.join(HERE, f"feature_ladder_recon_{name}")
     fig.savefig(stem + ".pdf", bbox_inches="tight", transparent=True)
     fig.savefig(stem + ".png", dpi=200, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     return stem
 
-
 for task in TASKS:
     print(make(task))
 print(f"wrote {len(TASKS)} figures: feature_ladder_recon_<task>.pdf / .png")
-print("wrote", make_combined([("next_activity", CURVE, "s"), ("remaining_time", "#009e73", "D")],
+print("wrote", make_combined([("next_activity", CURVE, "s", "NA acc."), ("remaining_time", "#009e73", "D", "RT MAE")],
                              "next_activity_remaining_time"))
