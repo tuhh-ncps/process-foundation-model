@@ -144,7 +144,7 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float], floa
     S = 1.50
     TXT = round(13 * S)
     plt.rcParams.update({"font.size": TXT})
-    fig, ax = plt.subplots(figsize=(6.93, 5.70))   # height set so w/h matches the descriptor heatmap (1.22), text scaled to read like its 15 pt
+    fig, ax = plt.subplots(figsize=(6.93, 5.65))   # height set so w/h matches the descriptor heatmap (1.22), text scaled to read like its 15 pt
     ax.bar(ks[1:], gain, color="#9ecae1", width=0.7, zorder=1, label="Step gain")
     ax.tick_params(width=0.8 * S, length=3.5 * S)
     for sp in ax.spines.values():
@@ -173,9 +173,10 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float], floa
         # covers the requested ticks
         lo = min(min(vals) - 0.45 * span, ticks[0] - 0.02 * (ticks[-1] - ticks[0]))
         hi = max(max(vals) + head * span, ticks[-1] + 0.02 * (ticks[-1] - ticks[0]))
-        # the axis is identified by a number above its spine; the legend says which task it is
-        tx.text(1.0 + 0.15 * i, 1.02, f"({i + 1})", transform=ax.transAxes, color=colour, ha="center",
-                va="bottom", fontweight="bold")
+        # the axis is identified by a number; the legend says which task it is
+        # below the axis, centred under its tick labels, on the x-axis title's row
+        tx.text(1.0 + 0.15 * i + 0.055, -0.115, f"({i + 1})", transform=ax.transAxes, color=colour,
+                ha="center", va="top", fontweight="bold")
         tx.tick_params(axis="y", colors=colour, width=0.8 * S, length=3.5 * S)
         tx.spines["right"].set_linewidth(0.8 * S)
         tx.spines["right"].set_color(colour)
