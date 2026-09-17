@@ -7,7 +7,7 @@ feature_ladder_descriptor_heatmap.pdf / .png next to this file.
 Cell (descriptor f, budget k) = R^2 of f from the first k descriptors of the frozen order, under the
 log-balanced correlation matrix R_bar. Rows are listed in the order descriptors are added; the orange box marks
 the budget at which each descriptor enters (R^2 = 1 from then on). Rows are labelled with the Table-1 letters
-only.
+only; no y-axis title, since the letters are self-explanatory with the caption key.
 """
 import importlib.util
 import json
@@ -36,18 +36,17 @@ M = np.array([fl.recovered(R_bar, order[:k], fl.RCOND) for k in range(N + 1)])  
 assert np.allclose(M.sum(axis=1)[1:], [s["J"] for s in art["steps"]])           # same J as the frozen artifact
 H = M[:, order].T                                                                # rows in the order added
 
-plt.rcParams.update({"font.size": 12})
-fig, ax = plt.subplots(figsize=(8.6, 5.2))
+plt.rcParams.update({"font.size": 17})
+fig, ax = plt.subplots(figsize=(4.6, 4.4))   # one third of a figure* row: narrow and tall
 im = ax.imshow(H, aspect="auto", cmap="Blues", vmin=0, vmax=1)
 for i, f in enumerate(order):
-    ax.add_patch(plt.Rectangle((i + 1 - 0.5, i - 0.5), 1, 1, fill=False, ec="#d55e00", lw=1.6))
+    ax.add_patch(plt.Rectangle((i + 1 - 0.5, i - 0.5), 1, 1, fill=False, ec="#d55e00", lw=1.4))
 ax.set_yticks(range(N))
-ax.set_yticklabels([fl.LETTER[fl.NAMES[f]] for f in order])
-ax.set_xticks(range(N + 1))
-ax.set_xlabel("number of fingerprint descriptors $k$")
-ax.set_ylabel("descriptor (in the order added)")
-cb = fig.colorbar(im, ax=ax, fraction=0.04, pad=0.02)
-cb.set_label("$R^2$ from the selected descriptors")
+ax.set_yticklabels([fl.LETTER[fl.NAMES[f]] for f in order], fontsize=14)
+ax.set_xticks(range(0, N + 1, 3))
+ax.set_xlabel("# descriptors $k$")
+cb = fig.colorbar(im, ax=ax, fraction=0.06, pad=0.03)
+cb.set_label("$R^2$")
 
 fig.tight_layout()
 stem = os.path.join(HERE, "feature_ladder_descriptor_heatmap")
