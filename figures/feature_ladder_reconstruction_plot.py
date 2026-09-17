@@ -196,7 +196,7 @@ def make_combined(tasks: list[tuple[str, str, str, str, float, list[float]]], na
     # Legend in two parts: the reconstruction entries upper left, the task entries lower right.
     style = dict(fontsize=TXT - 4, ncol=1, handlelength=1.1, handletextpad=0.4, borderpad=0.3,
                  framealpha=0.9, edgecolor="none")
-    leg1 = tx.legend(handles[:2], labels[:2], loc="upper left", bbox_to_anchor=(0.0, 1.0), **style)
+    leg1 = tx.legend(handles[:2], labels[:2], loc="upper left", bbox_to_anchor=(0.0, 0.93), **style)
     leg1.set_zorder(20)
     tx.add_artist(leg1)                           # a second legend() call would otherwise replace it
     leg2 = tx.legend(handles[2:], labels[2:], loc="lower right", bbox_to_anchor=(1.0, 0.04), **style)
