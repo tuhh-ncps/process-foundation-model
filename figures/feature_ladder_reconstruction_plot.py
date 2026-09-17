@@ -151,7 +151,7 @@ def make_combined(tasks: list[tuple[str, str, str, str]], name: str) -> str:
     ax.plot(ks, J, "o-", color="#0072b2", lw=2.4 * S, ms=5 * S, zorder=4, label="Cum. recon.")
     ax.set_xticks(range(0, N + 1, 3))
     ax.set_xlim(-0.4, N + 0.4)
-    ax.set_ylim(0, 1.1)
+    ax.set_ylim(0, 1.3)                           # headroom above the J line for the legend
     ax.set_yticks([0, 0.5, 1.0])
     ax.set_xlabel("# descriptors $k$")
     ax.grid(axis="y", alpha=0.25, lw=0.6 * S)
@@ -168,8 +168,8 @@ def make_combined(tasks: list[tuple[str, str, str, str]], name: str) -> str:
         h = tx.errorbar(ks, vals, yerr=sd, color=colour, lw=2.0 * S, marker=marker, ms=5 * S, capsize=2.5 * S,
                         elinewidth=1.1 * S, capthick=1.1 * S, zorder=3)
         span = max(vals) - min(vals)
-        # extra room below the curves leaves the lower right free for the legend
-        tx.set_ylim(min(vals) - 1.9 * span, max(vals) + 0.45 * span)
+        # extra room above the curves leaves the upper left free for the legend
+        tx.set_ylim(min(vals) - 0.45 * span, max(vals) + 1.9 * span)
         # the axis is identified by a number above its spine; the legend says which task it is
         tx.text(1.0 + 0.26 * i, 1.02, f"({i + 1})", transform=ax.transAxes, color=colour, ha="center",
                 va="bottom", fontweight="bold")
@@ -178,7 +178,7 @@ def make_combined(tasks: list[tuple[str, str, str, str]], name: str) -> str:
         tx.spines["right"].set_color(colour)
         tx.spines["top"].set_visible(False)
         tx.set_yticks(MaxNLocator(nbins=3).tick_values(min(vals), max(vals)))   # ticks where the data is
-        tx.set_ylim(min(vals) - 1.9 * span, max(vals) + 0.45 * span)
+        tx.set_ylim(min(vals) - 0.45 * span, max(vals) + 1.9 * span)
         tx.grid(False)
         handles.append(h)
         labels.append(f"({i + 1}) {short}")
@@ -190,9 +190,9 @@ def make_combined(tasks: list[tuple[str, str, str, str]], name: str) -> str:
                     xytext=(-5, 9), fontsize=13, color="#0072b2", zorder=10,
                     path_effects=[pe.withStroke(linewidth=3.2, foreground="white")])
 
-    leg = tx.legend(handles, labels, fontsize=TXT - 3, loc="lower right", ncol=1, handlelength=1.4,
+    leg = tx.legend(handles, labels, fontsize=TXT - 4, loc="upper left", ncol=1, handlelength=1.1,
                     columnspacing=0.8, handletextpad=0.4, borderpad=0.3, framealpha=0.9, edgecolor="none",
-                    bbox_to_anchor=(1.0, 0.05))
+                    bbox_to_anchor=(0.0, 1.0))
     leg.set_zorder(20)
     fig.tight_layout()
     stem = os.path.join(HERE, f"feature_ladder_recon_{name}")
