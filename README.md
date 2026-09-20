@@ -247,7 +247,7 @@ Full instructions, including how to get each log and how to reproduce every tabl
   title   = {{PFM}: A Process Foundation Model with Reusable Process Representations
              for Predictive Process Monitoring},
   author  = {Tran, Trinh and W{\"o}lker, Yannick and Landsiedel, Olaf},
-  journal = {Manuscript submitted to ACM},
+  journal = {Manuscript submitted to ICPM 2027},
   year    = {2026}
 }
 ```
