@@ -1,9 +1,0 @@
-{
-  "C2.2_agreement": {
-    "amendment": "A1",
-    "date": "2026-09-15",
-    "decision": "T. Tran",
-    "reason": "Ablation compared only within itself; cached evaluator retained despite per-log differences of up to 0.030 vs the standard path. Thresholds unchanged; failure reported.",
-    "protocol": "protocols/feature_ladder.md#a1--2026-09-15--c22-waived-cached-evaluation-retained"
-  }
-}

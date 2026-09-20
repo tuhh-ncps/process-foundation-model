@@ -228,10 +228,11 @@ python scripts/fmv2_eval.py --repo <events-transf> --checkpoint-dir <fmv2 checkp
 Both baselines are scored on the **same exported prefixes** as PFM, which is what makes the
 comparison fair.
 
-## 5b. Feature-budget ladder (pre-registered)
+## 5b. Feature-budget ladder
 
-`protocols/feature_ladder.md` freezes the protocol before the runs; amendments A1 and A2 are appended
-at the end of that file, and `protocols/feature_ladder_waivers.json` records the waived C2 check.
+The descriptor order is frozen from the pretraining logs alone, before any ladder run, by sequential
+greedy Principal Variables Analysis. Phase B then pretrains one role encoder and one backbone per
+budget k, and phase C evaluates them with the cached-feature path.
 
 ```bash
 python scripts/feature_ladder.py --data-dir data/raw \
@@ -240,7 +241,6 @@ python scripts/feature_ladder.py --selftest          # synthetic checks, no data
 # phases B and C are 15 role encoders + 15 backbones + 240 evaluation runs: same commands as above
 # with model.role_feature_mask=<mask from results/feature_ladder.json> and tag=-v2-fb<k>,
 # then scripts/bench_cached_pfm.py --backbone <fb-k backbone> --tasks next_activity per (log, seed)
-python scripts/feature_ladder_analysis.py c2         # -> results/feature_ladder_c2.json
 python scripts/feature_ladder_analysis.py report     # -> results/feature_ladder_summary.{csv,json}
 python scripts/feature_ladder_tasks_analysis.py      # -> results/feature_ladder_tasks_summary.{csv,json}
 ```
@@ -289,6 +289,7 @@ python figures/frozen_agg_merged.py       # Figure 3, label-efficiency panels (s
 python figures/frozen_agg_merged.py --seed2   # same panels from the seed-2 backbone (needs r28 collected)
 python figures/sota_agg_plot.py           # writes results/sota_agg_data.csv, then
 python figures/sota_wall_plot.py          # Figure 4, baselines + adaptation cost
+python figures/make_table5.py             # Table 5, full budget on the five held-out logs
 python figures/make_table_ablation_v2.py  # Table 6 and the seed-replication table
 python figures/make_datasets_table.py     # dataset statistics table (needs results/log_stats.csv)
 python figures/feats_importance_plot.py   # fingerprint non-redundancy
@@ -364,10 +365,51 @@ BPI20ID unchanged. The paper reports the released model and discloses the extra 
 **Zero-label point.** The `0` budget is not zero-shot for the regression tasks, because an MLP head
 with random initialisation has no meaningful zero-shot behaviour. Exclude it from budget curves.
 
-**Seed variance.** Single-backbone differences of 1–3 percentage points are **not** meaningful. Three
-pretraining seeds on five logs put the spread at roughly ±0.006 on aggregate next-activity accuracy.
-Treat any ablation gap smaller than that as noise, including the latent objective.
+**Seed variance.** Three pretraining seeds on five logs put the spread of aggregate next-activity accuracy
+at about ±0.6 points; per-log spreads are larger. Table 6's component gaps are well outside that band
+(GIN-15 73.3 against 70.8 for the MLP fingerprint encoder, 68.8 without fingerprints, 59.4 without roles),
+so they are read as effects. The future-latent row differs by a few tenths of a point, which is inside the
+band on accuracy, and it is the one row to read seed-matched - see "Mapping the artifact onto the published
+tables".
 
-**MIMIC variant count.** The dataset table's variant count for MIMIC does not reproduce from the current
-`mimic_transfers.csv`; the measured value is 42,673 against a published 42,594. Every other column
-of every other log reproduces exactly.
+## Mapping the artifact onto the published tables
+
+**The manuscript is the reference.** Its published values are the ones to cite. This section says which run
+produced each table so you can regenerate it, and notes where a regenerated value differs in the last digit.
+
+**Which run produced which published number.** Two arms were pretrained more than once, so the regenerating
+script has to be told which replica the paper used:
+
+| Published | Arm in `results/v2_all.csv` | Regenerate with |
+|---|---|---|
+| Table 5, PFM column | `pfm_s2` (seed-2 backbone, frozen) | `figures/make_table5.py` |
+| Table 5, PFM-FT column | `pfm_ft` (seed-0 backbone, finetuned) | `figures/make_table5.py` |
+| Table 5 / Figure 4, SuTraN and FM-v2 | `results/baselines/sutran`, `.../fmv2` | `figures/sota_agg_plot.py` |
+| Table 6, GIN-15 row | `gin15_s2` | `figures/make_table_ablation_v2.py` |
+| Table 6, no-latent row | `latent0_s1` | `figures/make_table_ablation_v2.py` |
+| Figure 3, PFM and PFM-FT | `pfm`, `pfm_ft` (seed 0) | `figures/frozen_agg_merged.py` |
+| Table 2, MIMIC-5k row | `MIMIC-5k` in `results/log_stats.csv` | `figures/make_datasets_table.py` |
+
+With these arms the artifact reproduces 115 of Table 5's 125 cells exactly and every row of Table 6.
+
+**Last-digit differences.** Ten Table 5 cells and the MIMIC-5k mean case duration (4.90 here, 4.97 printed)
+differ by one unit of the printed precision or less: GPU probe training is deterministic only up to
+floating-point reduction order, so a regenerated cell can land one unit either side, and the published run is
+the one of record. One larger gap: FM-v2's BPI13 remaining time reads about 22 days in Table 5 and 17.3
+(proto) / 16.3 (kNN) here with the validation-selected k.
+
+**Counting wins (Section 4.2).** Wins are counted on the printed table, with cells that agree to the last
+printed digit counted as ties. On that rule PFM-FT has the better mean in 19 of the 35 settings.
+
+**Table 6 seeds.** Its GIN-15 and no-latent rows come from different pretraining seeds (2 and 1), so read the
+future-latent objective seed-matched; `make_table_ablation_v2.py` prints that comparison under the main table.
+
+**Baseline replays.** `BASELINE_SET=v2 python figures/sota_agg_plot.py` reads a later re-run of SuTraN and
+FM-v2 that exists only for BPI13 and BPI17 and differs by up to 3 points (BPI17 SuTraN remaining count 16.4
+published vs 21.1). The default is the published set.
+
+**Counting convention.** "683 activity names" in the pretraining corpus is the vocabulary size including the
+four reserved tokens `<PAD> <UNK> <CLS> <MASK>`; there are 679 distinct activity names.
+
+**MIMIC row of Table 2.** The published row is MIMIC-5k, the first 5,000 cases of `mimic_transfers.csv`,
+and it reproduces column for column.

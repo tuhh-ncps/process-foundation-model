@@ -41,20 +41,29 @@ def ours(df, lg, arm, task):
     return float(v.mean()) if len(v) else np.nan
 
 
+# BASELINE_SET picks which replay of the baselines to read. "published" (default) is the one behind Table 5
+# and Figure 4 of the manuscript; "v2" is a later re-run that exists only for BPI13 and BPI17 and differs by up
+# to 3 points (e.g. BPI17 SuTraN remaining count 16.4 vs 21.1). See REPRODUCE.md.
+PUBLISHED = os.environ.get("BASELINE_SET", "published") == "published"
+SUTRAN_DIRS = ("sutran", "sutran_v2") if PUBLISHED else ("sutran_v2", "sutran")
+FMV2_DIRS = ("fmv2", "fmv2_v2") if PUBLISHED else ("fmv2_v2", "fmv2")
+
+
 def sutran(lg, task):
-    fs = glob.glob(os.path.join(BASE, "sutran_v2", "%s_s*.csv" % lg)) or glob.glob(os.path.join(BASE, "sutran", "%s_s*.csv" % lg))
+    fs = (glob.glob(os.path.join(BASE, SUTRAN_DIRS[0], "%s_s*.csv" % lg))
+          or glob.glob(os.path.join(BASE, SUTRAN_DIRS[1], "%s_s*.csv" % lg)))
     if not fs:
         return np.nan, ""
     s = pd.concat([pd.read_csv(f) for f in fs])
-    src = "v2" if "sutran_v2" in fs[0] else "old"
+    src = "v2" if "sutran_v2" in fs[0] else "published"
     v = s[s.task == task].value
     return (float(v.mean()) if len(v) else np.nan), src
 
 
 def fmv2(lg, task):
-    f = os.path.join(BASE, "fmv2_v2", "%s_val_%s.csv" % (lg, task))
+    f = os.path.join(BASE, FMV2_DIRS[0], "%s_val_%s.csv" % (lg, task))
     if not os.path.exists(f):
-        f = os.path.join(BASE, "fmv2", "%s_val_%s.csv" % (lg, task))
+        f = os.path.join(BASE, FMV2_DIRS[1], "%s_val_%s.csv" % (lg, task))
     if not os.path.exists(f):
         return np.nan, np.nan
     d = pd.read_csv(f)
