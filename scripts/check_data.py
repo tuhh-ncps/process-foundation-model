@@ -43,6 +43,9 @@ LOGS = {
     # Phase 1a selects its checkpoint on these; not needed for evaluation.
     "SepsisCases_Event_Log.xes": ("Sepsis Cases - Event Log", "Sepsis Cases - Event Log.xes",
                                   "Phase 1a validation"),
+    "berti_receipt.xes": ("Receipt phase of an environmental permit application",
+                          "Receipt phase of an environmental permit application process.xes",
+                          "Phase 1a validation"),
 }
 
 

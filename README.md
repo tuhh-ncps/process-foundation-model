@@ -133,22 +133,26 @@ independently that they really are early-in-case events.
 
 Five held-out logs, seven tasks, three seeds. `Frozen Random` is a randomly initialised, frozen
 representation - the honest floor. `PFM` freezes everything and trains only heads. `PFM-FT`
-fine-tunes end to end and is the upper reference, not a competitor.
+fine-tunes end to end and is the upper reference, not a competitor. `PFM-Scratch` is the same
+architecture trained end to end from random init, i.e. what the design is worth without pretraining.
 
 Means over the five held-out logs at full supervision, recomputed from [`results/v2_all.csv`](results/v2_all.csv):
 
-| Task | Frozen Random | PFM (frozen) | PFM-FT |
-|---|---|---|---|
-| Next activity (acc) | 0.685 | 0.724 | **0.782** |
-| Next 3 activities (acc) | 0.635 | 0.660 | **0.718** |
-| Next 5 activities (acc) | 0.610 | 0.627 | **0.684** |
-| Future activity set (F1) | 0.812 | 0.832 | **0.851** |
-| Next event time (norm. MAE) | 1.000 | 1.003 | **0.925** |
-| Remaining time (norm. MAE) | 1.000 | 0.929 | **0.918** |
-| Remaining count (norm. MAE) | 1.000 | 0.909 | **0.839** |
+| Task | Frozen Random | PFM-Scratch | PFM (frozen) | PFM-FT |
+|---|---|---|---|---|
+| Next activity (acc) | 0.685 | **0.787** | 0.724 | 0.782 |
+| Next 3 activities (acc) | 0.635 | **0.724** | 0.660 | 0.718 |
+| Next 5 activities (acc) | 0.610 | **0.691** | 0.627 | 0.684 |
+| Future activity set (F1) | 0.812 | **0.857** | 0.832 | 0.851 |
+| Next event time (norm. MAE) | 1.000 | 0.952 | 1.003 | **0.925** |
+| Remaining time (norm. MAE) | 1.000 | 0.957 | 0.929 | **0.918** |
+| Remaining count (norm. MAE) | 1.000 | 0.967 | 0.909 | **0.839** |
 
 MAE tasks are divided by that log's Frozen Random error at full supervision, so lower than 1.0 beats
-the floor. Per-log numbers are Table 5 of the paper and are reproducible from the same CSV.
+the floor. At full supervision PFM-Scratch is the strongest arm on the four activity tasks: with
+every case labelled, training the same architecture from scratch on the target log beats both the
+frozen and the fine-tuned pretrained model. PFM's case is label efficiency and adaptation cost,
+not full-supervision accuracy. Per-log numbers are Table 5 of the paper and are reproducible from the same CSV.
 
 ### Label efficiency
 
@@ -156,7 +160,7 @@ the floor. Per-log numbers are Table 5 of the paper and are reproducible from th
 
 At **ten labelled cases** the frozen representation already beats Frozen Random on all four activity
 tasks. The budget axis is logarithmic; `all` is the full training partition, which is a different
-size per log, so that last hop is drawn as a dashed connector rather than a normal step.
+size per log, so that last hop is marked with a break symbol (//) rather than drawn as a normal step.
 
 The time panels start flat for every arm until roughly 300 labels. That is a property of the data
 and the budget, not of head capacity - we checked by rerunning all three regression tasks with a
@@ -167,8 +171,9 @@ and the budget, not of head capacity - we checked by rerunning all three regress
 
 ![Comparison with baselines and adaptation cost](assets/sota_wall.png)
 
-Against **SuTraN**, which is trained separately per target log, frozen PFM has the better mean in 19
-settings. Against **FM-v2** neither method dominates on the two tasks it supports.
+Against **SuTraN**, which is trained separately per target log, frozen PFM has the better mean in 18
+of the 35 settings (five logs x seven tasks), recomputed from
+[`results/sota_agg_data.csv`](results/sota_agg_data.csv). Against **FM-v2** neither method dominates on the two tasks it supports.
 
 Panel (c) is the part the paper leads with. Adapting to a new log and scoring its test partition, on
 one NVIDIA H200, for the two tasks every method supports:

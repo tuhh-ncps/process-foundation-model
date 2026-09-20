@@ -4,7 +4,7 @@ Everything in this directory ran on the NCPS cluster from the working tree `~/hp
 which is a copy of this repository. The library code there is byte-identical to `src/` here; these
 scripts are the only part that lived solely on the cluster until the 2026-09-11 code freeze.
 
-**They produced every number reported in the ICPM paper**, so they are kept as the reproducibility
+**They produced every number reported in the paper**, so they are kept as the reproducibility
 record rather than as maintained code.
 
 ## Layout
@@ -59,3 +59,6 @@ USE_GPU=1 ARGS="task=evaluate evaluate=label_efficiency ..." sbatch --gres=gpu:1
 | r28 | `submit/submit_seed2_grid.py` | label-efficiency curves (PFM, PFM-FT) on the seed-2 GIN-15 backbone |
 | r29 | `submit/submit_scratch_grid.py` | PFM-Scratch: PFM's architecture trained from random init on each target log |
 | r30 | `submit/submit_timing5.py` | pinned wall-clock for PFM-Scratch (common task set, full H200, one job at a time) |
+| r31 | `submit/submit_feature_ladder.py` | feature-budget ladder: 15 role encoders + 15 backbones |
+| r32 | `submit/submit_feature_ladder_eval.py` | ladder C2 gate and the 240-run next-activity evaluation |
+| r33 | `submit/submit_feature_ladder_eval.py tasks` | ladder, six further tasks (protocol amendment A2) |

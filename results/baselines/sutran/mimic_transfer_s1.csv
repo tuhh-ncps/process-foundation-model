@@ -1,0 +1,8 @@
+log,seed,task,n_queries,value
+mimic_transfer,1,next_activity,2730,0.616117
+mimic_transfer,1,next_3_activities,5940,0.560774
+mimic_transfer,1,next_5_activities,6774,0.492619
+mimic_transfer,1,future_activity_set,3480,0.809670
+mimic_transfer,1,next_time,2730,1.021872
+mimic_transfer,1,remaining_time,3480,2.313311
+mimic_transfer,1,remaining_count,3480,0.479023

@@ -18,8 +18,12 @@ git clone <this repo> && cd hpc_training
 uv sync                     # or: python -m venv .venv && pip install -e .
 ```
 
-Python 3.11, PyTorch 2.x, Lightning 2.x. A GPU is required for pretraining; the downstream probes run
-on CPU but slowly.
+Python 3.11, PyTorch 2.x, Lightning 2.x. **An accelerator is assumed**: a CUDA GPU, or Apple silicon
+(M-series) through PyTorch MPS. `trainer=local` sets `accelerator: auto`, which picks CUDA or MPS
+on its own, so nothing needs changing per machine. CPU-only runs are not supported: pretraining is
+impractical and the probes are far too slow to be useful.
+
+The figures in section 7 are the exception - they read the committed CSVs and need no accelerator.
 
 Everything is driven by one Hydra entrypoint:
 
@@ -71,6 +75,7 @@ title** in the middle column; the download contains the file in the third column
 | `BPI13.xes` | BPI Challenge 2013, incidents | `BPI_Challenge_2013_incidents.xes` | held-out eval |
 | `helpdesk.csv` | Helpdesk | `helpdesk.csv` | held-out eval |
 | `SepsisCases_Event_Log.xes` | Sepsis Cases - Event Log | `Sepsis Cases - Event Log.xes` | Phase 1a validation only |
+| `berti_receipt.xes` | Receipt phase of an environmental permit application | `Receipt phase of an environmental permit application process.xes` | Phase 1a validation only |
 
 Two direct links, as a sanity check that you have the right datasets:
 [BPI Challenge 2012](https://data.4tu.nl/articles/dataset/BPI_Challenge_2012/12689204) ·
@@ -112,8 +117,12 @@ Trains the vocabulary-free activity encoder on its own, selecting the checkpoint
 (Sepsis and Receipt) that are never trained on.
 
 ```bash
-python train.py task=role_pretrain role=default trainer=local
+python train.py task=role_pretrain role=frozen trainer=local
 ```
+
+`role=frozen` is the configuration the paper's encoder uses: it trains on the six pretraining logs
+and validates on Sepsis and Receipt. (`role=default` is an older variant that validates on two of
+the held-out evaluation logs, so do not use it for a paper run.)
 
 120 epochs, Adam at 1e-3, loss weights `(w_v, w_s, w_c) = (0.5, 0.5, 1.0)`, `τ_s = 0.2`. Writes
 `outputs/role_encoders/<run_id>/role_encoder.pt`.
@@ -206,6 +215,28 @@ python hpc/submit/submit_fmv2.py     # FM-v2, released 4-expert checkpoint, k ch
 Both baselines are scored on the **same exported prefixes** as PFM, which is what makes the
 comparison fair.
 
+## 5b. Feature-budget ladder (pre-registered)
+
+`protocols/feature_ladder.md` freezes the protocol before the runs; amendments A1 and A2 are appended
+at the end of that file, and `protocols/feature_ladder_waivers.json` records the waived C2 check.
+
+```bash
+python scripts/feature_ladder.py --data-dir data/raw \
+    --out results/feature_ladder.json --fingerprints results/feature_ladder_fingerprints.npz
+python scripts/feature_ladder.py --selftest          # synthetic checks, no data needed
+python hpc/submit/submit_feature_ladder.py           # r31: 15 role encoders, then 15 backbones
+python hpc/submit/submit_feature_ladder_eval.py validate   # r32: C2 gate, then the ladder evaluation
+python hpc/submit/submit_feature_ladder_eval.py tasks      # r33: the six further tasks (A2)
+python scripts/feature_ladder_analysis.py c2         # -> results/feature_ladder_c2.json
+python scripts/feature_ladder_analysis.py report     # -> results/feature_ladder_summary.{csv,json}
+python scripts/feature_ladder_tasks_analysis.py      # -> results/feature_ladder_tasks_summary.{csv,json}
+```
+
+Phase A is CPU-only and reads the six pretraining logs; phases B and C need the cluster. The frozen
+order is `CHFNJBMLDOKGIEA`, and the C2 gate stands at `PASSED_WITH_WAIVER` (A1: the cached evaluator
+disagrees with the standard path by up to 0.043 accuracy, so ladder budgets are compared only with
+each other, never with the main result tables).
+
 ## 6. Collecting results
 
 Collectors walk `outputs/label_efficiency/*/manifest.json`, keep only runs matching the protocol, and
@@ -230,8 +261,10 @@ d = d[(d.n_labels.astype(str) == "all") & (d.task == "next_activity")]
 print(d.groupby(["log", "arm"]).value.mean().unstack("arm"))
 ```
 
-Arms: `pfm` frozen, `pfm_ft` fine-tuned, `pfm_rft` role encoder only, `random_role` the floor, plus
-the ablation variants `mlp15 raw15 gin11 gin0 latent0 norole` and seed replicas `*_s1 *_s2`.
+Arms: `pfm` frozen, `pfm_ft` fine-tuned, `pfm_scratch` the same architecture trained end to end from
+random init, `pfm_rft` role encoder only, `random_role` the floor, plus the ablation variants
+`mlp15 raw15 gin11 gin0 latent0 norole` and the seed replicas `gin15_s1 gin15_s2 latent0_s1
+latent0_s2 pfm_s2 pfm_ft_s2` (pretraining seed 1/2 of the same backbone).
 
 ## 7. Figures and tables
 
@@ -244,8 +277,14 @@ python figures/frozen_agg_merged.py --seed2   # same panels from the seed-2 back
 python figures/sota_agg_plot.py           # writes results/sota_agg_data.csv, then
 python figures/sota_wall_plot.py          # Figure 4, baselines + adaptation cost
 python figures/make_table_ablation_v2.py  # Table 6 and the seed-replication table
-python figures/make_datasets_table.py     # Table 2 (needs results/log_stats.csv)
+python figures/make_datasets_table.py     # dataset statistics table (needs results/log_stats.csv)
 python figures/feats_importance_plot.py   # fingerprint non-redundancy
+python figures/frozen_aggregate_panels.py # the same curves as seven standalone panels + a LaTeX block
+PFM_SEED=2 python figures/frozen_aggregate_panels.py   # those panels from the seed-2 backbone
+python figures/feature_ladder_plot.py     # feature-budget ladder, next activity (Phase D)
+python figures/feature_ladder_tasks_plot.py           # ladder, six further tasks (amendment A2)
+python figures/feature_ladder_reconstruction_plot.py  # reconstruction vs downstream, one file per task
+python figures/feature_ladder_descriptor_heatmap.py   # per-descriptor R^2 vs budget
 ```
 
 Output lands next to the scripts and is gitignored; the committed copies are in `assets/`.
@@ -268,7 +307,7 @@ TikZ sources under `docs/`, which is not published.
 
 | Paper element | Produced by |
 |---|---|
-| Table 2, dataset statistics | `scripts/log_stats.py` (needs `data/raw/`) → `make_datasets_table.py` |
+| Dataset statistics table | `scripts/log_stats.py` (needs `data/raw/`) → `make_datasets_table.py` |
 | Table 5, full-budget results | `submit_v2.py main` → `collect_v2.py` |
 | Table 6, component ablation | `submit_v2.py ablation` → `make_table_ablation_v2.py` |
 | Figure 3, label efficiency | `submit_v2.py main` → `frozen_agg_merged.py` |
@@ -316,6 +355,6 @@ with random initialisation has no meaningful zero-shot behaviour. Exclude it fro
 pretraining seeds on five logs put the spread at roughly ±0.006 on aggregate next-activity accuracy.
 Treat any ablation gap smaller than that as noise, including the latent objective.
 
-**MIMIC variant count.** Table 2's variant count for MIMIC does not reproduce from the current
+**MIMIC variant count.** The dataset table's variant count for MIMIC does not reproduce from the current
 `mimic_transfers.csv`; the measured value is 42,673 against a published 42,594. Every other column
 of every other log reproduces exactly.

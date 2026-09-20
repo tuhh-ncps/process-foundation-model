@@ -1,4 +1,4 @@
-"""Raw-log statistics for the dataset table (Table 1).
+"""Raw-log statistics for the dataset statistics table.
 
 Recomputes the columns already in docs/datasets_table.tex (#Cases, #Events, #Act., median/max
 trace length, #Variants) as a CORRECTNESS CHECK, and adds the two new temporal columns:

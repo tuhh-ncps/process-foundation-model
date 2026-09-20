@@ -1,0 +1,8 @@
+log,seed,task,n_queries,value
+helpdesk,2,next_activity,1283,0.772408
+helpdesk,2,next_3_activities,2171,0.657301
+helpdesk,2,next_5_activities,2219,0.643082
+helpdesk,2,future_activity_set,1854,0.889222
+helpdesk,2,next_time,1283,3.512577
+helpdesk,2,remaining_time,1854,4.943793
+helpdesk,2,remaining_count,1854,0.271305

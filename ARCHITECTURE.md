@@ -113,7 +113,7 @@ flowchart TB
 
     subgraph evaluation["evaluation/ - probes and metrics"]
         LE["label_efficiency.py<br/>run_label_efficiency"]
-        MT["metrics.py, confusion.py<br/>report.py, rollout.py"]
+        MT["metrics.py, confusion.py<br/>zero_shot.py"]
     end
 
     subgraph experiments["experiments/ - provenance"]
@@ -141,13 +141,14 @@ Measured from the import statements, not drawn by hand. Regenerate with the snip
 
 ```mermaid
 flowchart LR
-    data["data<br/>14 files · 2,619 LOC"]
-    models["models<br/>11 files · 1,205 LOC"]
-    ssl["ssl<br/>6 files · 1,020 LOC"]
+    data["data<br/>13 files · 2,385 LOC"]
+    models["models<br/>9 files · 1,146 LOC"]
+    ssl["ssl<br/>3 files · 587 LOC"]
     tasks["tasks<br/>11 files · 953 LOC"]
-    training["training<br/>7 files · 1,082 LOC"]
-    evaluation["evaluation<br/>9 files · 2,200 LOC"]
+    training["training<br/>5 files · 949 LOC"]
+    evaluation["evaluation<br/>5 files · 1,596 LOC"]
     experiments["experiments<br/>3 files · 523 LOC"]
+    utils["utils<br/>2 files · 23 LOC"]
 
     models --> data
     ssl --> models
@@ -156,12 +157,10 @@ flowchart LR
     training --> data
     training --> models
     training --> ssl
-    training --> tasks
     training --> experiments
     evaluation --> data
     evaluation --> models
     evaluation --> tasks
-    evaluation --> training
     evaluation --> experiments
 
     style data fill:#eef2f7,stroke:#4c78a8
@@ -275,7 +274,7 @@ never silently mix protocols.
 | §3.3 task heads | `tasks/*.py`, `models/heads/` |
 | §4.1 splits, budgets, protocol | `evaluation/label_efficiency.py` |
 | §4.2 metrics | `evaluation/metrics.py` |
-| Ablation variants | `configs/model/role_*.yaml` |
+| Ablation variants | `configs/model/role_*.yaml` (`latent0` and `norole` are `role_gin15` plus `ar.jepa_weight=0` / `model.role_dim=0`, not their own configs) |
 
 ## Exploring with CodeGraph
 
