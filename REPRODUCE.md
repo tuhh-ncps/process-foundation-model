@@ -353,12 +353,6 @@ GPU-bound: MIG slices run as fast as a full H200.
 
 Recorded so results can be checked rather than taken on trust.
 
-**Outcome pretext term.** The released backbone was trained with a fifth loss term, a BPI'12
-application-outcome head at weight 0.3, in addition to the four documented objectives. A control
-backbone without it was pretrained and probed on four held-out logs: differences are within
-pretraining-seed noise, the largest being −0.035 next-activity accuracy on BPI13, with PFM-FT and
-BPI20ID unchanged. The paper reports the released model and discloses the extra term.
-
 **Inert role-contrast term.** The backbone config carries `role_contrast_weight=0.3`, but
 `freeze_role=true` means the role encoder receives no gradient, so the term never contributes.
 
