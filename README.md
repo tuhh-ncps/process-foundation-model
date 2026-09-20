@@ -99,9 +99,9 @@ taken last, being the descriptor the other fourteen reconstruct best. Five descr
 the full fingerprint and seven rebuild 69%. Downstream the curve flattens well before the
 reconstruction does: next-activity accuracy is 67.7% with no fingerprint at all (DFG topology only),
 71.3% at two descriptors and 72.6% at seven, against 72.0% for all fifteen, while remaining-time MAE
-improves by about 5% over the same range. The pre-registered near-full budget is `k = 7`. Which
-descriptors matter most is task-dependent, so this is a reconstruction ordering, not an importance
-ranking.
+improves by about 5% over the same range. From `k = 7` on, every budget stays within one seed
+standard deviation of the full-fingerprint accuracy. Which descriptors matter most is task-dependent,
+so this is a reconstruction ordering, not an importance ranking.
 
 ### Phase 1b - backbone pretraining
 
