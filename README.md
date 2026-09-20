@@ -199,19 +199,6 @@ reaches identical test metrics (max difference 0.009 accuracy) and is 3.1× to 2
 re-running the backbone each epoch. Measurements: [`results/timing_pinned.csv`](results/timing_pinned.csv),
 [`results/cached_pfm_bench.jsonl`](results/cached_pfm_bench.jsonl).
 
-### Honest limitations
-
-- Freezing costs accuracy. PFM-FT has the better mean in 19 of the 35 settings of Table 5; the
-  frozen model buys reuse and adaptation speed, not peak numbers.
-- The future-latent objective helps the time tasks more than the activity tasks. Seed-matched over
-  three pretraining seeds on all five logs it lowers aggregate remaining-time MAE at every seed
-  (6.15 vs 6.28 days on average) and leaves aggregate next-activity accuracy unchanged within seed
-  spread (73.0 vs 73.1).
-- Per-feature permutation importance does not rank the 15 descriptors: they are correlated, so
-  dropping one is absorbed by the rest and the effects stay inside training noise. The feature-budget
-  ladder ([REPRODUCE.md](REPRODUCE.md#5b-feature-budget-ladder)) is the measurement that does resolve,
-  and it shows accuracy plateauing after the first few descriptors.
-
 ---
 
 ## Data
