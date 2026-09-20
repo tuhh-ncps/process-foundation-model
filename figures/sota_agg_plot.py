@@ -5,8 +5,8 @@ SuTraN (official recipe, NDA, equal weighting, 3 seeds), FM-v2 Proto / kNN (even
 read-outs, k selected on validation, one deterministic run). All at full budget on identical test
 queries.  Accuracy-type tasks: raw metric.  MAE tasks: each log's MAE divided by that log's Rand. MAE
 at full budget (unitless; lower is better), same convention as frozen_agg_*.
-Bars = mean over logs.  Inputs: labeleff_data/v2_all.csv,
-labeleff_data/sutran_v2 (preferred) or sutran, labeleff_data/fmv2_v2 (preferred) or fmv2.
+Bars = mean over logs.  Inputs: results/v2_all.csv,
+results/baselines/sutran_v2 (preferred) or sutran, results/baselines/fmv2_v2 (preferred) or fmv2.
 Outputs: sota_agg.pdf/.png, sota_agg_data.csv, sota_agg.tex (figure block).
 """
 import glob
@@ -22,6 +22,7 @@ import pandas as pd
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)   # repo root
 D = os.path.join(ROOT, "results")
+BASE = os.path.join(D, "baselines")   # SuTraN / FM-v2 replays
 LOGS = [("helpdesk", "Helpdesk"), ("bpi13_incidents", "BPI13"), ("mimic_transfer", "MIMIC"),
         ("BPI20ID", "BPI20ID"), ("BPI17", "BPI17")]
 ACC = [("next_activity", "Next\nactivity"), ("next_3_activities", "Next 3"), ("next_5_activities", "Next 5"),
@@ -41,7 +42,7 @@ def ours(df, lg, arm, task):
 
 
 def sutran(lg, task):
-    fs = glob.glob(os.path.join(D, "sutran_v2", "%s_s*.csv" % lg)) or glob.glob(os.path.join(D, "sutran", "%s_s*.csv" % lg))
+    fs = glob.glob(os.path.join(BASE, "sutran_v2", "%s_s*.csv" % lg)) or glob.glob(os.path.join(BASE, "sutran", "%s_s*.csv" % lg))
     if not fs:
         return np.nan, ""
     s = pd.concat([pd.read_csv(f) for f in fs])
@@ -51,9 +52,9 @@ def sutran(lg, task):
 
 
 def fmv2(lg, task):
-    f = os.path.join(D, "fmv2_v2", "%s_val_%s.csv" % (lg, task))
+    f = os.path.join(BASE, "fmv2_v2", "%s_val_%s.csv" % (lg, task))
     if not os.path.exists(f):
-        f = os.path.join(D, "fmv2", "%s_val_%s.csv" % (lg, task))
+        f = os.path.join(BASE, "fmv2", "%s_val_%s.csv" % (lg, task))
     if not os.path.exists(f):
         return np.nan, np.nan
     d = pd.read_csv(f)

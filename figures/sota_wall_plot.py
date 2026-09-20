@@ -1,7 +1,7 @@
 """Merged figure: SOTA comparison at full budget (accuracy tasks, normalised MAE tasks) + measured wall-clock.
 
 Panels (a)/(b) reuse sota_agg_data.csv written by sota_agg_plot.py (mean over the five held-out logs; MAE tasks
-divided by the Random-role MAE per log). Panel (c) reuses labeleff_data/timing_pinned.csv (one full H200 per job,
+divided by the Random-role MAE per log). Panel (c) reuses results/timing_pinned.csv (one full H200 per job,
 common task set). Colour families: PFM / PFM-FT = oranges (light / dark), FM-v2 Proto / kNN = greens, SuTraN = purple.
 Outputs: sota_wall.pdf/.png, sota_wall.tex.
 """
