@@ -16,7 +16,7 @@ A5  leave-one-log-out orderings (reported only).
 No held-out evaluation log is ever read.
 
 Usage (inside the project container, from the repository root):
-    python scripts/feature_ladder.py --data-dir /workspace/data/raw \
+    python scripts/feature_ladder.py --data-dir data/raw \
         --out outputs/feature_ladder/feature_ladder.json \
         --fingerprints outputs/feature_ladder/feature_ladder_fingerprints.npz
     python scripts/feature_ladder.py --from-fingerprints results/feature_ladder_fingerprints.npz --out ...
