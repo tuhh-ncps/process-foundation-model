@@ -77,16 +77,24 @@ e_ℓ(a) = LayerNorm( x̃_ℓ(a) + MLP_role( (1+ε)·x̃_ℓ(a) + Σ_{b ∈ N⁻
 Training combines InfoNCE across two augmented views of the same activity, supervised contrastive
 and classification terms over coarse start/end roles. All statistics come from training traces only.
 
-**Are the 15 features redundant?** Partly, and that is measured rather than assumed. The
-correlation structure and a per-feature non-redundancy score are in the repo:
+**How many of the 15 descriptors are needed?** The order is fixed before any training run, by
+sequential greedy **Principal Variables Analysis (PVA)** on the correlation matrix of the pretraining
+logs, so it never sees a downstream label. One role encoder and one backbone are then pretrained per
+budget `k = 0..15` and probed frozen on the five held-out logs (Figure 4a-b of the paper):
 
 <p align="center">
-  <img src="assets/feats_pca_corr.png" width="44%" alt="Fingerprint correlation matrix">
-  <img src="assets/feats_importance.png" width="54%" alt="Per-feature unique information">
+  <img src="assets/feature_ladder_descriptors.png" width="43%" alt="Per-descriptor reconstruction from the selected subset">
+  <img src="assets/feature_ladder_recon.png" width="50%" alt="Cumulative reconstruction against downstream accuracy and MAE">
 </p>
 
-The average feature carries about 0.57 of information the other fourteen cannot reconstruct.
-Temporal descriptors are the least substitutable; PageRank is the most redundant, at 0.27.
+PVA takes the self-loop probability first, then predecessor entropy and case coverage; PageRank is
+taken last, being the descriptor the other fourteen reconstruct best. Five descriptors rebuild 55% of
+the full fingerprint and seven rebuild 69%. Downstream the curve flattens well before the
+reconstruction does: next-activity accuracy is 67.7% with no fingerprint at all (DFG topology only),
+71.3% at two descriptors and 72.6% at seven, against 72.0% for all fifteen, while remaining-time MAE
+improves by about 5% over the same range. The pre-registered near-full budget is `k = 7`. Which
+descriptors matter most is task-dependent, so this is a reconstruction ordering, not an importance
+ranking.
 
 ### Phase 1b - backbone pretraining
 
