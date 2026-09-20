@@ -224,8 +224,11 @@ Raw statistics including mean inter-event time and mean case duration are in
 
 ```bash
 uv sync                      # or: pip install -e .
-python train.py task=role_pretrain role=default trainer=local
+uv run python train.py task=role_pretrain role=frozen trainer=local
 ```
+
+That trains the Phase 1a role encoder in the paper's configuration: `role=frozen` trains on the six
+pretraining logs and selects the checkpoint on Sepsis and Receipt, which are never trained on.
 
 Full instructions, including how to get each log and how to reproduce every table and figure, are in
 [REPRODUCE.md](REPRODUCE.md).
