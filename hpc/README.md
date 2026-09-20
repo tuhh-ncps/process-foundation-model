@@ -66,17 +66,27 @@ USE_GPU=1 ARGS="task=evaluate evaluate=label_efficiency ..." sbatch --gres=gpu:1
 ## Publishing to GitHub
 
 `main` (GitLab) is the full tree. The public GitHub repository tracks the `public` branch, which is
-`main` plus one commit that removes `hpc/`, `slurm/` and the cluster `Makefile`, and rewrites the
-affected documentation to give the `train.py` commands those submitters wrap.
+`main` plus one commit that removes the paths below and rewrites the affected documentation to give
+the `train.py` commands those submitters wrap.
+
+| Removed from `public` | Why |
+|---|---|
+| `hpc/`, `slurm/`, `Makefile` | cluster orchestration, site-specific and internal |
+| `.deadcode/` | modules retired during cleanup; nothing needs them to reproduce a result |
+| `protocols/`, `results/feature_ladder_c2.json` | our own pre-registration, its amendments and the C2 gate verdict. Internal instrument, not a paper claim, and nothing public reads them. Publish with the camera-ready. |
+
+The manuscript cites the GitHub repository (footnote 1) and promises the per-seed standard
+deviations are there, so `results/` and the run-to-table mapping in `REPRODUCE.md` must stay.
+What comes out is only what no reader needs to regenerate a published number.
 
 To publish after new work lands on `main`:
 
 ```bash
-git checkout public && git merge main      # brings hpc/ and slurm/ back
-git rm -r --quiet hpc slurm Makefile       # remove them again
-git commit -m "Public release: drop the cluster orchestration"
+git checkout public && git merge main      # brings the internal paths back
+git rm -r --quiet hpc slurm Makefile .deadcode protocols results/feature_ladder_c2.json
+git commit -m "Public release: drop the internal tree"
 git push origin public:main                # GitHub
 git push gitlab public                     # keep the branch in sync internally
 ```
 
-Check `git ls-tree --name-only public` before pushing: it must not list `hpc`, `slurm` or `Makefile`.
+Check `git ls-tree --name-only public` before pushing: it must list none of the paths above.
