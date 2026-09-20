@@ -151,10 +151,11 @@ PFM-FT is `pfm_ft` (seed 0), as published. `figures/make_table5.py` regenerates 
 | Remaining count (norm. MAE) | 1.000 | 0.967 | 0.903 | **0.839** |
 
 MAE tasks are divided by that log's Frozen Random error at full supervision, so lower than 1.0 beats
-the floor. At full supervision PFM-Scratch is the strongest arm on the four activity tasks: with
-every case labelled, training the same architecture from scratch on the target log beats both the
-frozen and the fine-tuned pretrained model. PFM's case is label efficiency and adaptation cost,
-not full-supervision accuracy. Per-log numbers are Table 5 of the paper and are reproducible from the same CSV.
+the floor. PFM-FT leads PFM-Scratch at every budget from 10 to 1,000 labelled cases (0.675 vs 0.657
+at 10, 0.718 vs 0.678 at 100, mean over the four activity tasks); with every case labelled the two
+meet and PFM-Scratch edges ahead by half a point. Pretraining buys the initialisation, and its value
+is largest exactly where labels are scarce. Per-log numbers are Table 5 of the paper and are
+reproducible from the same CSV.
 
 ### Label efficiency
 
@@ -196,12 +197,16 @@ re-running the backbone each epoch. Measurements: [`results/timing_pinned.csv`](
 
 ### Honest limitations
 
-- Freezing costs accuracy. PFM-FT is better on nearly every task; the frozen model buys reuse and
-  speed, not peak numbers.
-- The future-latent objective is **neutral**. Across three pretraining seeds per variant on all five
-  logs, removing it changes results by at most ~2 seed standard deviations, with inconsistent sign.
-- Per-feature permutation importance of the fingerprint is **inconclusive**: effects sit inside
-  training noise because the features are correlated. Reported as a negative result, not a ranking.
+- Freezing costs accuracy. PFM-FT has the better mean in 19 of the 35 settings of Table 5; the
+  frozen model buys reuse and adaptation speed, not peak numbers.
+- The future-latent objective helps the time tasks more than the activity tasks. Seed-matched over
+  three pretraining seeds on all five logs it lowers aggregate remaining-time MAE at every seed
+  (6.15 vs 6.28 days on average) and leaves aggregate next-activity accuracy unchanged within seed
+  spread (73.0 vs 73.1).
+- Per-feature permutation importance does not rank the 15 descriptors: they are correlated, so
+  dropping one is absorbed by the rest and the effects stay inside training noise. The feature-budget
+  ladder ([`protocols/feature_ladder.md`](protocols/feature_ladder.md)) is the measurement that does
+  resolve, and it shows accuracy plateauing after the first few descriptors.
 
 ---
 

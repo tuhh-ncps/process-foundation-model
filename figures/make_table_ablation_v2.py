@@ -151,7 +151,9 @@ tex2 = [r"\begin{table}[t]", r"\centering", r"\small",
         r"pretrained three times with different seeds and probed frozen at full budget on the five held-out logs, three evaluation "
         r"seeds per cell. Entries are the mean over logs, reported as mean $\pm$ s.d.\ over the three pretraining seeds. "
         r"Accuracy-type tasks report the raw metric; MAE tasks the ratio to the Random-role MAE per log (lower is better). "
-        r"$\Delta$ is no latent minus full. On every task $|\Delta|$ is at most about two pretraining-seed standard deviations, and its sign is not consistent: dropping the latent loss is marginally better on the activity tasks and marginally worse on the time tasks.}",
+        r"$\Delta$ is no latent minus full. On every task $|\Delta|$ is at most about two pretraining-seed standard "
+        r"deviations, so the objective is not what carries the aggregate result. Seed-matched, the one task with a "
+        r"consistent direction is remaining time, where the full model has the lower error at all three pretraining seeds.}",
         r"\label{tab:ablation-latent-seeds}", r"\begin{tabular}{lccc}", r"\toprule",
         r"Task & GIN-15 (full) & no latent & $\Delta$ \\", r"\midrule"]
 for task, name in ACC + MAE:

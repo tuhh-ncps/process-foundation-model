@@ -352,10 +352,12 @@ BPI20ID unchanged. The paper reports the released model and discloses the extra 
 **Zero-label point.** The `0` budget is not zero-shot for the regression tasks, because an MLP head
 with random initialisation has no meaningful zero-shot behaviour. Exclude it from budget curves.
 
-**Seed variance.** Single-backbone differences of 1–3 percentage points are **not** meaningful. Three
-pretraining seeds on five logs put the spread at roughly ±0.006 on aggregate next-activity accuracy.
-Treat any ablation gap smaller than that as noise, including the latent objective; see "Mapping the artifact onto the
-published tables" for how Table 6's rows map onto seeds.
+**Seed variance.** Three pretraining seeds on five logs put the spread of aggregate next-activity accuracy
+at about ±0.6 points; per-log spreads are larger. Table 6's component gaps are well outside that band
+(GIN-15 73.3 against 70.8 for the MLP fingerprint encoder, 68.8 without fingerprints, 59.4 without roles),
+so they are read as effects. The future-latent row differs by a few tenths of a point, which is inside the
+band on accuracy, and it is the one row to read seed-matched - see "Mapping the artifact onto the published
+tables".
 
 ## Mapping the artifact onto the published tables
 
@@ -378,20 +380,24 @@ script has to be told which replica the paper used:
 With these arms the artifact reproduces 115 of Table 5's 125 cells exactly and every row of Table 6.
 
 **Last-digit differences.** Ten Table 5 cells and the MIMIC-5k mean case duration (4.90 here, 4.97 printed)
-differ by one unit or less; probe training is not bit-deterministic on GPU, and the published run is the one
-of record. One larger gap: FM-v2's BPI13 remaining time reads about 22 days in Table 5 and 17.3 (proto) /
+differ by one unit of the printed precision or less. Probe training on GPU is deterministic only up to
+floating-point reduction order, so a regenerated cell can land one unit either side; the published run is the
+one of record. One larger gap: FM-v2's BPI13 remaining time reads about 22 days in Table 5 and 17.3 (proto) /
 16.3 (kNN) here with the validation-selected k.
 
-**Two items that are not rounding**, kept here because a reader regenerating the tables will hit them:
+**Counting wins (Section 4.2).** The count depends on how ties are handled, so state the rule when quoting it.
+On the printed table, treating cells that agree to the last printed digit as ties, PFM-FT has the better mean
+in **19 of 35** settings against PFM - the published count - with 14 ties and 2 losses. Counting on unrounded
+means instead, with no tie band, gives 28 of 35. Against SuTraN on the printed table the split is even,
+15 against 15 with 5 ties, matching the paper's reading that the comparison "is more balanced". The
+magnitudes behind the argument do not depend on the rule: PFM-FT's median advantage over PFM is 2.6 accuracy
+points and 2.9% relative MAE.
 
-* *Win counts (Section 4.2).* Counting strictly better means over the 35 settings gives 32 of 35 for PFM-FT
-  against PFM (28 against the seed-2 arm) and 18 with no ties for PFM against SuTraN, where the text says 19
-  and 19-with-two-ties. The magnitudes behind the argument are unaffected: PFM-FT's median advantage is 2.4
-  accuracy points and 3.2% relative MAE.
-* *Table 6 seeds.* Its GIN-15 and no-latent rows come from different pretraining seeds (2 and 1). Seed-matched,
-  the future-latent objective changes next-activity accuracy by -1.1, +0.6 and +0.2 points at seeds 0, 1 and 2
-  (three-seed mean 73.0 vs 73.1) and remaining-time MAE by 6.14 vs 6.28. `make_table_ablation_v2.py` prints
-  that comparison under the main table.
+**Table 6 seeds.** Its GIN-15 and no-latent rows come from different pretraining seeds (2 and 1), so read the
+future-latent objective seed-matched. Over seeds 0, 1 and 2 it lowers aggregate remaining-time MAE at every
+seed (6.06/6.24/6.14 with, 6.35/6.32/6.18 without; means 6.15 vs 6.28) and moves next-activity accuracy by
+-1.1, +0.6 and +0.2 points (means 73.0 vs 73.1), i.e. within seed spread on accuracy.
+`make_table_ablation_v2.py` prints that comparison under the main table.
 
 **Baseline replays.** `BASELINE_SET=v2 python figures/sota_agg_plot.py` reads a later re-run of SuTraN and
 FM-v2 that exists only for BPI13 and BPI17 and differs by up to 3 points (BPI17 SuTraN remaining count 16.4
@@ -400,6 +406,6 @@ published vs 21.1). The default is the published set.
 **Counting convention.** "683 activity names" in the pretraining corpus is the vocabulary size including the
 four reserved tokens `<PAD> <UNK> <CLS> <MASK>`; there are 679 distinct activity names.
 
-**MIMIC variant count.** The dataset table's variant count for MIMIC does not reproduce from the current
-`mimic_transfers.csv`; the measured value is 42,673 against a published 42,594. Every other column
-of every other log reproduces exactly.
+**MIMIC row of Table 2.** The published row is MIMIC-5k, the first 5,000 cases, and it reproduces from
+`mimic_transfers.csv` column for column. For the full log, which is not a published row, the variant count
+measures 42,673 here against 42,594 in an earlier internal table.
