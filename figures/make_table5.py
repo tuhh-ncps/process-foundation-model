@@ -26,6 +26,7 @@ HEAD = {"next_activity": "Next act. (Acc, %)", "next_3_activities": "Next-3 (Acc
         "remaining_count": "Rem. count (MAE, ev.)"}
 # FM-v2 supports only its two native tasks; the baseline replays live in the aggregated raw CSV.
 FMV2_TASKS = {"next_activity", "remaining_time"}
+BASE_NAME = {"MIMIC-5k": "MIMIC"}
 
 d = pd.read_csv(os.path.join(ROOT, "results", "v2_all.csv"))
 d = d[(d.n_labels.astype(str) == "all") & d.seed.isin([0, 1, 2])]
@@ -45,7 +46,8 @@ for key, name in LOGS:
     for t in TASKS:
         row[f"{t}/PFM"] = cell(t, ours[(PFM_ARM, key, t)])
         row[f"{t}/PFM-FT"] = cell(t, ours[(FT_ARM, key, t)])
-        b = base.loc[(name, t)] if (name, t) in base.index else None
+        bname = BASE_NAME.get(name, name)   # the aggregate CSV labels the subset "MIMIC"
+        b = base.loc[(bname, t)] if (bname, t) in base.index else None
         row[f"{t}/SuTraN"] = cell(t, None if b is None else b["SuTraN"])
         if t in FMV2_TASKS:
             row[f"{t}/FM-v2 Proto"] = cell(t, None if b is None else b["FM-v2 Proto"])

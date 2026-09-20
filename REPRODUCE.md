@@ -393,8 +393,22 @@ Consequences worth knowing:
   ties. The magnitudes are unaffected: PFM-FT's median advantage is 2.4 accuracy points and 3.2% relative MAE.
 * *Table 2, MIMIC-5k mean case duration.* The artifact computes 4.90 days for the 5,000-case subset; the table
   prints 4.97, which is the full-MIMIC value. Every other cell of that row matches the subset.
-* *Table 5, FM-v2 remaining time on BPI13.* The artifact gives 17.3 (proto) and 16.3 (kNN) days with the
-  validation-selected k; the printed values are about 22.
+* *Table 5, ten of its 125 cells.* With the arms above the artifact reproduces 115 cells exactly. The rest:
+
+  | Cell | Printed | Artifact |
+  |---|---|---|
+  | BPI13, rem. time, FM-v2 Proto / kNN | 22.3 / 22.2 | 17.3 / 16.3 (validation-selected k) |
+  | BPI13, rem. count, PFM | 2.1 | 2.2 |
+  | BPI17, rem. time, PFM | 7.2 | 7.1 |
+  | BPI20ID, next time / rem. time, PFM | 3.5 / 12.6 | 3.6 / 12.8 |
+  | Helpdesk, future set, PFM | 90 | 89 |
+  | MIMIC-5k, next act. / next-5 / rem. count, PFM | 60 / 57 / 0.5 | 59 / 56 / 0.6 |
+  | MIMIC-5k, future set, PFM-FT | 83 | 82 |
+
+  No single arm assignment closes these: Helpdesk and BPI17 need the seed-2 backbone for PFM, MIMIC-5k is
+  closer to seed 0 (which gives next-5 57 and next act 59), and MIMIC-5k's PFM-FT future set matches the
+  seed-2 finetune (83) while BPI20ID's PFM-FT matches the seed-0 one (88). Table 5 therefore appears to mix
+  runs; every difference is within 1 unit except FM-v2's BPI13 remaining time.
 
 **Counting convention.** "683 activity names" in the pretraining corpus is the vocabulary size including the
 four reserved tokens `<PAD> <UNK> <CLS> <MASK>`; there are 679 distinct activity names.
