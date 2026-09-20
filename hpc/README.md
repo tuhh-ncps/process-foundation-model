@@ -25,7 +25,7 @@ cluster they sat at the root of `~/hpc_training_frozen` and were run from there:
 ```bash
 cd ~/hpc_training_frozen
 python submit_v2.py main              # submit a grid
-python collect_v2.py > results.csv    # collect it
+python scripts/collect_v2.py > results.csv   # collect it
 ```
 
 To run them from this layout, invoke them from the repository root so the relative paths still
@@ -33,7 +33,7 @@ resolve:
 
 ```bash
 python hpc/submit/submit_v2.py main
-python hpc/collect/collect_v2.py > results.csv
+python scripts/collect_v2.py > results.csv
 ```
 
 `bench/bench_feat_importance.py` imports `bench_cached_pfm`, so those two must stay together.
@@ -54,7 +54,7 @@ USE_GPU=1 ARGS="task=evaluate evaluate=label_efficiency ..." sbatch --gres=gpu:1
 | r23 | `submit/submit_rft.py` | PFM-RFT, role encoder fine-tuned with the backbone frozen |
 | r16, r17, r24 | `submit/submit_timing*.py` | pinned wall-clock measurements |
 | r25 | `bench/bench_cached_pfm.py` | cached-feature wall-clock |
-| r26 | `submit/submit_linhead.py`, `collect/collect_linhead.py` | linear vs MLP regression heads |
+| r26 | `submit/submit_linhead.py`, `scripts/collect_linhead.py` | linear vs MLP regression heads |
 | r27 | `bench/bench_feat_importance.py` | permutation importance of the 15 fingerprint features |
 | r28 | `submit/submit_seed2_grid.py` | label-efficiency curves (PFM, PFM-FT) on the seed-2 GIN-15 backbone |
 | r29 | `submit/submit_scratch_grid.py` | PFM-Scratch: PFM's architecture trained from random init on each target log |

@@ -247,8 +247,8 @@ Collect to a temporary file and move it into place, so a run that collects nothi
 the shipped results (the collectors exit non-zero and print nothing when they match no run):
 
 ```bash
-python hpc/collect/collect_v2.py      > /tmp/v2_all.csv      && mv /tmp/v2_all.csv      results/v2_all.csv
-python hpc/collect/collect_linhead.py > /tmp/linhead_all.csv && mv /tmp/linhead_all.csv results/linhead_all.csv
+python scripts/collect_v2.py      > /tmp/v2_all.csv      && mv /tmp/v2_all.csv      results/v2_all.csv
+python scripts/collect_linhead.py > /tmp/linhead_all.csv && mv /tmp/linhead_all.csv results/linhead_all.csv
 ```
 
 Columns: `log, arm, task, n_labels, n_train_samples, seed, value, run`. One row per

@@ -257,7 +257,7 @@ is fully described to the encoder by this structure, which is why `set_graph` is
 requires.
 
 **`RunRegistry` / `RunManifest`** (`experiments/`) - every run writes a directory with its full
-config, git state and metrics. Collectors in `hpc/collect/` filter on manifest fields, so results can
+config, git state and metrics. Collectors in `scripts/` filter on manifest fields, so results can
 never silently mix protocols.
 
 ---
