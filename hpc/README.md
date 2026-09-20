@@ -62,3 +62,21 @@ USE_GPU=1 ARGS="task=evaluate evaluate=label_efficiency ..." sbatch --gres=gpu:1
 | r31 | `submit/submit_feature_ladder.py` | feature-budget ladder: 15 role encoders + 15 backbones |
 | r32 | `submit/submit_feature_ladder_eval.py` | ladder C2 gate and the 240-run next-activity evaluation |
 | r33 | `submit/submit_feature_ladder_eval.py tasks` | ladder, six further tasks (protocol amendment A2) |
+
+## Publishing to GitHub
+
+`main` (GitLab) is the full tree. The public GitHub repository tracks the `public` branch, which is
+`main` plus one commit that removes `hpc/`, `slurm/` and the cluster `Makefile`, and rewrites the
+affected documentation to give the `train.py` commands those submitters wrap.
+
+To publish after new work lands on `main`:
+
+```bash
+git checkout public && git merge main      # brings hpc/ and slurm/ back
+git rm -r --quiet hpc slurm Makefile       # remove them again
+git commit -m "Public release: drop the cluster orchestration"
+git push origin public:main                # GitHub
+git push gitlab public                     # keep the branch in sync internally
+```
+
+Check `git ls-tree --name-only public` before pushing: it must not list `hpc`, `slurm` or `Makefile`.
