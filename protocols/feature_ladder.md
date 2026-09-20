@@ -32,7 +32,8 @@ diagonal for that log.
 
 **A3. Log balancing.** R̄ = (1/6) Σ_ℓ R_ℓ. Record the condition number of R̄.
 
-**A4. Primary greedy ordering.** Start with S = ∅; at each step add the f ∉ S maximising
+**A4. Primary greedy ordering.** This is sequential greedy Principal Variables Analysis (PVA): the paper
+refers to the procedure by that name. Start with S = ∅; at each step add the f ∉ S maximising
 J(S ∪ {f}) = tr(R̄_{·S} R̄_{SS}^+ R̄_{S·}), with R̄_{SS}^+ the Moore–Penrose pseudo-inverse at
 rcond = 1e-10. Exact ties are resolved by the fixed A–O order above. J(S)/15 is the fraction of
 standardised descriptor variance recovered by one linear reconstruction shared across the six

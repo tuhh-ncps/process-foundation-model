@@ -24,6 +24,8 @@ LOGS = [  # display name, file, split ("pre" | "eval" | "both")
     ("BPI18", "BPI18.xes", "pre"), ("Road Traffic", "RoadTraffic.xes", "pre"),
     ("BPI20ID", "BPI20ID.xes", "eval"), ("BPI11", "BPI11.xes", "pre"),
     ("Hospital Billing", "HospitalBilling.xes", "pre"), ("MIMIC", "mimic_transfers.csv", "eval"),
+    # MIMIC-5k is the log the paper evaluates: the first 5,000 cases, as evaluate.eval_log.max_traces=5000.
+    ("MIMIC-5k", "mimic_transfers.csv", "eval", 5000),
     ("BPI13", "BPI13.xes", "eval"), ("Helpdesk", "helpdesk.csv", "eval"),
 ]
 DAY = 86400.0
@@ -75,13 +77,16 @@ def cases_csv(path):
         yield acts, ts
 
 
-def stats(name, fn, split):
+def stats(name, fn, split, cap=None):
+    """`cap` keeps only the first `cap` cases, mirroring evaluate.eval_log.max_traces (MIMIC-5k: 5000)."""
     path = os.path.join(RAW, fn)
     it = cases_csv(path) if fn.endswith(".csv") else cases_xes(path)
     n_cases = n_events = n_unsorted = 0
     acts_seen, variants, variants_fo = set(), set(), set()
     lens, durs, gaps = [], [], []
     for acts, ts in it:
+        if cap is not None and n_cases >= cap:
+            break
         raw_t = np.asarray(ts, dtype=np.float64)
         order = np.argsort(raw_t, kind="stable")
         t = raw_t[order]
@@ -110,17 +115,27 @@ def stats(name, fn, split):
 
 want = sys.argv[1:]
 out = []
-for name, fn, split in LOGS:
+for entry in LOGS:
+    name, fn, split, cap = (*entry, None)[:4]
     if want and name not in want:
         continue
-    s = stats(name, fn, split)
+    s = stats(name, fn, split, cap)
     out.append(s)
     print("{name:17s} {split:5s} cases={cases:>7d} events={events:>9d} act={acts:>4d} "
           "medlen={med_len:>3d} maxlen={max_len:>5d} var={variants:>6d} varFO={variants_fileorder:>6d} "
           "unsorted={frac_unsorted:>6.2%} med_gap={med_gap:>9.4f}d zero_gap={frac_zero_gap:>6.1%} "
           "med_dur={med_dur:>9.3f}d mean_dur={mean_dur:>9.2f}d".format(**s),
           flush=True)
+# Merge with any existing rows: a filtered run (e.g. `log_stats.py MIMIC-5k`) must not drop the other logs.
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
+merged = {}
+if os.path.exists(OUT):
+    for r in csv.DictReader(open(OUT)):
+        merged[r["name"]] = r
+for s in out:
+    merged[s["name"]] = {k: str(v) for k, v in s.items()}
+order = [e[0] for e in LOGS]
+rows = [merged[n] for n in order if n in merged] + [r for n, r in merged.items() if n not in order]
 with open(OUT, "w", newline="") as fh:
-    w = csv.DictWriter(fh, fieldnames=list(out[0].keys())); w.writeheader(); w.writerows(out)
+    w = csv.DictWriter(fh, fieldnames=list(out[0].keys())); w.writeheader(); w.writerows(rows)
 print("\nwrote", OUT)

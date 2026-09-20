@@ -136,17 +136,19 @@ representation - the honest floor. `PFM` freezes everything and trains only head
 fine-tunes end to end and is the upper reference, not a competitor. `PFM-Scratch` is the same
 architecture trained end to end from random init, i.e. what the design is worth without pretraining.
 
-Means over the five held-out logs at full supervision, recomputed from [`results/v2_all.csv`](results/v2_all.csv):
+Means over the five held-out logs at full supervision, recomputed from [`results/v2_all.csv`](results/v2_all.csv).
+The PFM column is the arm published in Table 5 of the paper (`pfm_s2`, the seed-2 pretrained backbone);
+PFM-FT is `pfm_ft` (seed 0), as published. `figures/make_table5.py` regenerates the per-log table:
 
 | Task | Frozen Random | PFM-Scratch | PFM (frozen) | PFM-FT |
 |---|---|---|---|---|
-| Next activity (acc) | 0.685 | **0.787** | 0.724 | 0.782 |
-| Next 3 activities (acc) | 0.635 | **0.724** | 0.660 | 0.718 |
-| Next 5 activities (acc) | 0.610 | **0.691** | 0.627 | 0.684 |
-| Future activity set (F1) | 0.812 | **0.857** | 0.832 | 0.851 |
-| Next event time (norm. MAE) | 1.000 | 0.952 | 1.003 | **0.925** |
-| Remaining time (norm. MAE) | 1.000 | 0.957 | 0.929 | **0.918** |
-| Remaining count (norm. MAE) | 1.000 | 0.967 | 0.909 | **0.839** |
+| Next activity (acc) | 0.685 | **0.787** | 0.733 | 0.782 |
+| Next 3 activities (acc) | 0.635 | **0.724** | 0.673 | 0.718 |
+| Next 5 activities (acc) | 0.610 | **0.691** | 0.639 | 0.684 |
+| Future activity set (F1) | 0.812 | **0.857** | 0.831 | 0.851 |
+| Next event time (norm. MAE) | 1.000 | 0.952 | 0.984 | **0.925** |
+| Remaining time (norm. MAE) | 1.000 | 0.957 | 0.937 | **0.918** |
+| Remaining count (norm. MAE) | 1.000 | 0.967 | 0.903 | **0.839** |
 
 MAE tasks are divided by that log's Frozen Random error at full supervision, so lower than 1.0 beats
 the floor. At full supervision PFM-Scratch is the strongest arm on the four activity tasks: with
@@ -171,9 +173,9 @@ and the budget, not of head capacity - we checked by rerunning all three regress
 
 ![Comparison with baselines and adaptation cost](assets/sota_wall.png)
 
-Against **SuTraN**, which is trained separately per target log, frozen PFM has the better mean in 18
-of the 35 settings (five logs x seven tasks), recomputed from
-[`results/sota_agg_data.csv`](results/sota_agg_data.csv). Against **FM-v2** neither method dominates on the two tasks it supports.
+Against **SuTraN**, which is trained separately per target log, the two are close: per-setting values are
+in [`results/sota_agg_data.csv`](results/sota_agg_data.csv), and `figures/make_table5.py` prints the same
+table as the paper. Against **FM-v2** neither method dominates on the two tasks it supports.
 
 Panel (c) is the part the paper leads with. Adapting to a new log and scoring its test partition, on
 one NVIDIA H200, for the two tasks every method supports:

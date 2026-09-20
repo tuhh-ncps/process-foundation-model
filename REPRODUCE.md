@@ -276,6 +276,7 @@ python figures/frozen_agg_merged.py       # Figure 3, label-efficiency panels (s
 python figures/frozen_agg_merged.py --seed2   # same panels from the seed-2 backbone (needs r28 collected)
 python figures/sota_agg_plot.py           # writes results/sota_agg_data.csv, then
 python figures/sota_wall_plot.py          # Figure 4, baselines + adaptation cost
+python figures/make_table5.py             # Table 5, full budget on the five held-out logs
 python figures/make_table_ablation_v2.py  # Table 6 and the seed-replication table
 python figures/make_datasets_table.py     # dataset statistics table (needs results/log_stats.csv)
 python figures/feats_importance_plot.py   # fingerprint non-redundancy
@@ -353,7 +354,50 @@ with random initialisation has no meaningful zero-shot behaviour. Exclude it fro
 
 **Seed variance.** Single-backbone differences of 1–3 percentage points are **not** meaningful. Three
 pretraining seeds on five logs put the spread at roughly ±0.006 on aggregate next-activity accuracy.
-Treat any ablation gap smaller than that as noise, including the latent objective.
+Treat any ablation gap smaller than that as noise, including the latent objective; see "Differences from
+the submitted manuscript" for how Table 6's rows map onto seeds.
+
+## Differences from the submitted manuscript
+
+The manuscript is fixed; this section records how its published numbers map onto the artifact, and the
+three places where the artifact does not reproduce a printed value.
+
+**Which run produced which published number.** Two arms were pretrained more than once, and the paper does
+not use the same replica everywhere:
+
+| Published | Arm in `results/v2_all.csv` | Regenerate with |
+|---|---|---|
+| Table 5, PFM column | `pfm_s2` (seed-2 backbone, frozen) | `figures/make_table5.py` |
+| Table 5, PFM-FT column | `pfm_ft` (seed-0 backbone, finetuned) | `figures/make_table5.py` |
+| Table 5 / Figure 4, SuTraN and FM-v2 | `results/baselines/sutran`, `.../fmv2` | `figures/sota_agg_plot.py` |
+| Table 6, GIN-15 row | `gin15_s2` | `figures/make_table_ablation_v2.py` |
+| Table 6, no-latent row | `latent0_s1` | `figures/make_table_ablation_v2.py` |
+| Figure 3, PFM and PFM-FT | `pfm`, `pfm_ft` (seed 0) | `figures/frozen_agg_merged.py` |
+
+Consequences worth knowing:
+
+* Table 6's GIN-15 and no-latent rows come from different pretraining seeds. Seed-matched, the future-latent
+  objective changes next-activity accuracy by -1.1, +0.6 and +0.2 points at seeds 0, 1 and 2 (three-seed mean
+  73.0 vs 73.1), i.e. it is within seed noise; remaining-time MAE is 6.14 vs 6.28. `make_table_ablation_v2.py`
+  prints the seed-matched comparison under the main table.
+* `BASELINE_SET=v2 python figures/sota_agg_plot.py` reads the later baseline re-run, which exists only for
+  BPI13 and BPI17 and differs by up to 3 points (BPI17 SuTraN remaining count 16.4 published vs 21.1).
+* Figure 3 uses the seed-0 backbone, Table 5 the seed-2 one, so the same arm differs by about one accuracy
+  point between them (72.4% vs 73.3% aggregate next activity).
+
+**Values we could not reproduce.**
+
+* *Win counts (Section 4.2).* "PFM-FT achieves the better mean result in 19 of the 35 cases" comes out as 32
+  of 35 against seed-0 PFM (28 against seed-2), or 25/9 ties and 21/11 ties when counted on the rounded Table 5
+  values. "PFM achieves the better mean in 19 settings, with two ties" against SuTraN comes out as 18 with no
+  ties. The magnitudes are unaffected: PFM-FT's median advantage is 2.4 accuracy points and 3.2% relative MAE.
+* *Table 2, MIMIC-5k mean case duration.* The artifact computes 4.90 days for the 5,000-case subset; the table
+  prints 4.97, which is the full-MIMIC value. Every other cell of that row matches the subset.
+* *Table 5, FM-v2 remaining time on BPI13.* The artifact gives 17.3 (proto) and 16.3 (kNN) days with the
+  validation-selected k; the printed values are about 22.
+
+**Counting convention.** "683 activity names" in the pretraining corpus is the vocabulary size including the
+four reserved tokens `<PAD> <UNK> <CLS> <MASK>`; there are 679 distinct activity names.
 
 **MIMIC variant count.** The dataset table's variant count for MIMIC does not reproduce from the current
 `mimic_transfers.csv`; the measured value is 42,673 against a published 42,594. Every other column

@@ -19,8 +19,14 @@ d = pd.read_csv(os.path.join(ROOT, "results", "v2_all.csv"))
 d["n_labels"] = d.n_labels.astype(str)
 d = d[d.n_labels == "all"]
 LOGS = ["helpdesk", "bpi13_incidents", "mimic_transfer", "BPI20ID", "BPI17"]
-VAR = [("pfm", "GIN-15 (full)"), ("mlp15", "MLP-15"), ("raw15", "raw-15"), ("gin11", "GIN-11"), ("gin0", "GIN-0"),
-       ("latent0", "no latent"), ("norole", "no role")]
+# Arms as PUBLISHED in Table 6 of the manuscript. The role variants (mlp15/raw15/gin11/gin0/norole) were
+# pretrained once, with seed 0. The two arms that were replicated across pretraining seeds appear in the
+# submitted table with a specific replica: GIN-15 with the seed-2 backbone (gin15_s2) and the no-latent
+# variant with the seed-1 backbone (latent0_s1). Those two rows are therefore NOT seed-matched with each
+# other; the seed replication printed below this table gives the matched comparison, and REPRODUCE.md
+# ("Differences from the submitted manuscript") says what changes under it.
+VAR = [("gin15_s2", "GIN-15 (full)"), ("mlp15", "MLP-15"), ("raw15", "raw-15"), ("gin11", "GIN-11"), ("gin0", "GIN-0"),
+       ("latent0_s1", "no latent"), ("norole", "no role")]
 ACC = [("next_activity", "Next act. (acc)"), ("next_3_activities", "Next-3 (acc)"), ("next_5_activities", "Next-5 (acc)"),
        ("future_activity_set", "Future set (F1)")]
 MAE = [("next_time", "Next time (norm. MAE)"), ("remaining_time", "Rem. time (norm. MAE)"), ("remaining_count", "Rem. count (norm. MAE)")]

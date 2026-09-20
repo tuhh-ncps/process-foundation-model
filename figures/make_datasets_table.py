@@ -26,7 +26,8 @@ STATS = os.path.join(ROOT, "results", "log_stats.csv")
 
 DOMAIN = {"BPI12": "Finance", "BPI17": "Finance", "BPI19": "Procurement", "BPI18": "Government",
           "Road Traffic": "Government", "BPI20ID": "Travel", "BPI11": "Healthcare",
-          "Hospital Billing": "Healthcare", "MIMIC": "Healthcare", "BPI13": "IT service",
+          "Hospital Billing": "Healthcare", "MIMIC": "Healthcare", "MIMIC-5k": "Healthcare",
+          "BPI13": "IT service",
           "Helpdesk": "IT service"}
 # BPI12 is pretrained on AND used as the in-domain evaluation reference; it gets one row, in the
 # pre-training block, flagged by a dagger.
@@ -39,6 +40,10 @@ def num(v):
 
 
 rows = list(csv.DictReader(open(STATS)))
+# The paper evaluates MIMIC-5k (the first 5,000 cases, evaluate.eval_log.max_traces=5000), so the held-out
+# block reports that row; the full-MIMIC row stays in results/log_stats.csv for reference.
+EVAL_MIMIC = "MIMIC-5k"
+rows = [r for r in rows if r["name"] != ("MIMIC" if EVAL_MIMIC == "MIMIC-5k" else "MIMIC-5k")]
 pre = sorted([r for r in rows if r["split"] in ("pre", "both")], key=lambda r: -int(r["cases"]))
 ev = sorted([r for r in rows if r["split"] == "eval"], key=lambda r: -int(r["cases"]))
 
@@ -59,7 +64,7 @@ L = [r"% " + "=" * 76,
      r"as the in-domain evaluation reference. The corpus spans finance, government, healthcare and "
      r"IT-service domains and roughly three orders of magnitude in size. The two duration columns are "
      r"as heterogeneous: mean event duration ranges from about eleven hours (BPI12) to four months "
-     r"(Road Traffic), and mean case duration from five days (MIMIC) to more than a year (BPI11).}",
+     r"(Road Traffic), and mean case duration from five days (MIMIC-5k) to more than a year (BPI11).}",
      r"\label{tab:datasets}",
      r"\small\setlength{\tabcolsep}{4pt}",
      r"\begin{tabular}{@{}cll rrr rr r rr@{}}", r"\toprule",
