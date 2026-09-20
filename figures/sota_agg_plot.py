@@ -28,9 +28,10 @@ LOGS = [("helpdesk", "Helpdesk"), ("bpi13_incidents", "BPI13"), ("mimic_transfer
 ACC = [("next_activity", "Next\nactivity"), ("next_3_activities", "Next 3"), ("next_5_activities", "Next 5"),
        ("future_activity_set", "Future\nset")]
 MAE = [("next_time", "Next\ntime"), ("remaining_time", "Remaining\ntime"), ("remaining_count", "Remaining\ncount")]
-# Our family = turquoise, deepening with how much of the model adapts (PFM -> PFM-RFT -> PFM-FT);
+# Our family = turquoise, deepening with how much of the model adapts (PFM frozen -> PFM-Scratch,
+# same architecture from random init -> PFM-FT, pretrained and finetuned end to end);
 # SuTraN = red; FM-v2 = yellow-green (kept clear of the turquoise ramp).
-METHODS = [("Rand.", "#9a9a9a"), ("PFM", "#7ecfcf"), ("PFM-RFT", "#2ba3a8"), ("PFM-FT", "#0f6470"),
+METHODS = [("Rand.", "#9a9a9a"), ("PFM", "#7ecfcf"), ("PFM-Scratch", "#2f9ea6"), ("PFM-FT", "#0f6470"),
            ("SuTraN", "#d62728"), ("FM-v2 Proto", "#4d8b1f"), ("FM-v2 kNN", "#a8cf5c")]
 PLOT = [m for m in METHODS if m[0] != "Rand."]  # Rand. stays the MAE normaliser but is not drawn
 LOG_MARK = {"Helpdesk": "o", "BPI13": "s", "MIMIC": "^", "BPI20ID": "D", "BPI17": "v"}
@@ -84,7 +85,7 @@ for lg, name in LOGS:
     for task, _ in ACC + MAE:
         r = {"log": name, "task": task,
              "Rand.": ours(new, lg, "random_role", task), "PFM": ours(new, lg, "pfm", task),
-             "PFM-RFT": ours(new, lg, "pfm_rft", task), "PFM-FT": ours(new, lg, "pfm_ft", task)}
+             "PFM-Scratch": ours(new, lg, "pfm_scratch", task), "PFM-FT": ours(new, lg, "pfm_ft", task)}
         r["SuTraN"], sources[name] = sutran(lg, task)
         r["FM-v2 Proto"], r["FM-v2 kNN"] = fmv2(lg, task) if task in ("next_activity", "remaining_time") else (np.nan, np.nan)
         rows.append(r)
@@ -144,8 +145,8 @@ tex = r"""\begin{figure*}[t]
 \includegraphics[width=\textwidth]{figures/sota_agg.pdf}
 \caption{Full-supervision comparison with the baselines, aggregated over the five held-out logs
 (Helpdesk, BPI13, MIMIC, BPI20ID, BPI17), identical test queries; bars are the mean over logs. \emph{\PFM}:
-pretrained frozen backbone with trained heads; \emph{\PFM-RFT}: frozen backbone with the role encoder
-(9.5k parameters, $0.19\%$ of the backbone) trained alongside the head; \emph{\PFM-FT}: \PFM{} fine-tuned end to end;
+pretrained frozen backbone with trained heads; \emph{\PFM-Scratch}: the same architecture
+trained end to end from random initialisation on the target log; \emph{\PFM-FT}: \PFM{} fine-tuned end to end;
 \emph{SuTraN}: SuTraN-EW-NDA, the official recipe with equal loss weighting and non-data-aware inputs, three seeds; \emph{FM-v2 Proto/kNN}:
 retrieval read-outs of the events-transf foundation model with $k$ selected on validation (next activity and
 remaining time only). Left: accuracy-type tasks (raw metric). Right: MAE tasks, each log's error divided by
