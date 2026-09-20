@@ -1,5 +1,12 @@
 # PFM - A Process Foundation Model with Reusable Process Representations
 
+**Pretrain once. Adapt to new event logs and prediction tasks with lightweight heads.**
+
+PFM learns reusable event-state representations for predictive process monitoring. Activities are
+represented by their structural, temporal, and positional roles rather than shared activity
+identities. After pretraining, the role encoder and causal Transformer remain frozen; adaptation
+trains only a task-specific head.
+
 Reference implementation for the paper *"PFM: A Process Foundation Model with Reusable Process
 Representations for Predictive Process Monitoring"* (Tran, Wölker, Landsiedel - TUHH).
 
