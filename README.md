@@ -230,12 +230,24 @@ Raw statistics including mean inter-event time and mean case duration are in
 ## Quick start
 
 ```bash
-uv sync                      # or: pip install -e .
+uv sync                                          # or: pip install -e .
+uv run python figures/make_table5.py             # regenerates a paper table from the committed CSVs
+```
+
+That first command needs no data and no GPU: it rebuilds Table 5 from [`results/`](results/), so you
+can check the environment before downloading anything.
+
+Training needs the raw logs. They are not redistributable, so fetch them first and let the checker
+confirm the names and contents:
+
+```bash
+uv run python scripts/check_data.py              # says exactly what is missing and how to rename it
 uv run python train.py task=role_pretrain role=frozen trainer=local
 ```
 
-That trains the Phase 1a role encoder in the paper's configuration: `role=frozen` trains on the six
-pretraining logs and selects the checkpoint on Sepsis and Receipt, which are never trained on.
+The second command trains the Phase 1a role encoder in the paper's configuration: `role=frozen`
+trains on the six pretraining logs and selects the checkpoint on Sepsis and Receipt, which are never
+trained on. [REPRODUCE.md](REPRODUCE.md#2-data) has the download and rename table.
 
 Full instructions, including how to get each log and how to reproduce every table and figure, are in
 [REPRODUCE.md](REPRODUCE.md).

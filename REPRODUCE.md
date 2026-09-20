@@ -14,7 +14,8 @@ clone to regenerated figures.
 ## 1. Setup
 
 ```bash
-git clone <this repo> && cd hpc_training
+git clone https://github.com/tuhh-ncps/process-foundation-model.git
+cd process-foundation-model
 uv sync                     # or: python -m venv .venv && pip install -e .
 ```
 
@@ -25,10 +26,15 @@ impractical and the probes are far too slow to be useful.
 
 The figures in section 7 are the exception - they read the committed CSVs and need no accelerator.
 
+**Running the commands below.** They are written as `python ...`, which assumes the project
+environment is the active one. With uv, either prefix each command with `uv run` (`uv run python
+train.py ...`) or activate the environment once with `source .venv/bin/activate`; with a plain venv,
+activate it the same way. Nothing else in this guide changes.
+
 Everything is driven by one Hydra entrypoint:
 
 ```bash
-python train.py task=<pretrain|role_pretrain|evaluate> [overrides...]
+uv run python train.py task=<pretrain|role_pretrain|evaluate> [overrides...]
 ```
 
 Paths come from `configs/paths/default.yaml` and honour `DATA_DIR` and `OUTPUT_DIR`. Nothing is

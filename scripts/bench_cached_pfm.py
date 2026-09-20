@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import time
 
 import lightning as L
@@ -49,12 +50,16 @@ from pm_foundation.models import TraceBackbone
 from pm_foundation.models.encoder import EncoderOutput
 from pm_foundation.tasks.multitask_module import MultiTaskLitModule
 
+# Raw logs live in DATA_DIR if set, else <repo>/data/raw, under the names scripts/check_data.py
+# checks for (REPRODUCE.md, "Data"): the download filenames are renamed, so BPI13 is BPI13.xes.
+RAW = os.environ.get("DATA_DIR") or os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "raw")
 LOGS = {
-    "helpdesk": ("/workspace/data/raw/helpdesk.csv", None),
-    "bpi13_incidents": ("/workspace/data/raw/BPI_Challenge_2013_incidents.xes", None),
-    "mimic_transfer": ("/workspace/data/raw/mimic_transfers.csv", 5000),
-    "BPI20ID": ("/workspace/data/raw/BPI20ID.xes", None),
-    "BPI17": ("/workspace/data/raw/BPI17.xes", None),
+    "helpdesk": ("helpdesk.csv", None),
+    "bpi13_incidents": ("BPI13.xes", None),
+    "mimic_transfer": ("mimic_transfers.csv", 5000),
+    "BPI20ID": ("BPI20ID.xes", None),
+    "BPI17": ("BPI17.xes", None),
 }
 BACKBONE = "backbone-20260906-153102-multi-none-v2-gin15-17fc3c"
 TASKS = ["next_activity", "remaining_time"]          # default task set (r25 timing benchmark)
@@ -144,7 +149,10 @@ def main() -> None:
     a = ap.parse_args()
     tasks = [t.strip() for t in a.tasks.split(",") if t.strip()]
     assert tasks and set(tasks) <= set(ALL_TASKS), f"--tasks must be a subset of {ALL_TASKS}"
-    path, max_traces = LOGS[a.log]
+    fname, max_traces = LOGS[a.log]
+    path = os.path.join(RAW, fname)
+    if not os.path.exists(path):
+        raise SystemExit(f"{path} not found; run python scripts/check_data.py (or set DATA_DIR)")
     device = "cuda"
 
     from pm_foundation.data.dataset import NEXT_ACTIVITY_IGNORE_INDEX as _IGN
