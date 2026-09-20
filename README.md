@@ -105,10 +105,6 @@ is the frozen role embedding concatenated with time features. It is trained on s
 logs with four objectives: next activity, next event time, remaining time, and a **future-latent**
 (JEPA-style) objective that predicts its own EMA-teacher states `J = 4` steps ahead.
 
-> **Disclosure.** The released backbone was also trained with a small fifth term, a BPI'12
-> application-outcome head at weight 0.3. A control run with that term removed changes results only
-> within pretraining-seed noise. See [REPRODUCE.md](REPRODUCE.md#known-deviations).
-
 ### Phase 2 - adaptation
 
 The role encoder and backbone stay frozen. For a new log you need only its **activity set, DFG and
