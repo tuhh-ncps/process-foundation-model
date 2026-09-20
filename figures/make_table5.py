@@ -5,7 +5,7 @@ figures/sota_agg_plot.py). Writes table5.tex / table5.md next to this file.
 
 Arms as PUBLISHED. PFM is the frozen probe on the seed-2 pretrained backbone (arm `pfm_s2`); PFM-FT is the
 end-to-end finetune of the seed-0 backbone (arm `pfm_ft`). The two columns therefore come from different
-pretraining seeds - see REPRODUCE.md, "Differences from the submitted manuscript". Every cell is a mean over
+pretraining seeds - see REPRODUCE.md, "Mapping the artifact onto the published tables". Every cell is a mean over
 three evaluation seeds; accuracy and F1 in %, MAE in days (remaining count in events), rounded as printed.
 """
 import os

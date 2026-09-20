@@ -354,16 +354,16 @@ with random initialisation has no meaningful zero-shot behaviour. Exclude it fro
 
 **Seed variance.** Single-backbone differences of 1–3 percentage points are **not** meaningful. Three
 pretraining seeds on five logs put the spread at roughly ±0.006 on aggregate next-activity accuracy.
-Treat any ablation gap smaller than that as noise, including the latent objective; see "Differences from
-the submitted manuscript" for how Table 6's rows map onto seeds.
+Treat any ablation gap smaller than that as noise, including the latent objective; see "Mapping the artifact onto the
+published tables" for how Table 6's rows map onto seeds.
 
-## Differences from the submitted manuscript
+## Mapping the artifact onto the published tables
 
-The manuscript is fixed; this section records how its published numbers map onto the artifact, and the
-three places where the artifact does not reproduce a printed value.
+**The manuscript is the reference.** Its published values are the ones to cite. This section says which run
+produced each table so you can regenerate it, and notes where a regenerated value differs in the last digit.
 
-**Which run produced which published number.** Two arms were pretrained more than once, and the paper does
-not use the same replica everywhere:
+**Which run produced which published number.** Two arms were pretrained more than once, so the regenerating
+script has to be told which replica the paper used:
 
 | Published | Arm in `results/v2_all.csv` | Regenerate with |
 |---|---|---|
@@ -373,42 +373,29 @@ not use the same replica everywhere:
 | Table 6, GIN-15 row | `gin15_s2` | `figures/make_table_ablation_v2.py` |
 | Table 6, no-latent row | `latent0_s1` | `figures/make_table_ablation_v2.py` |
 | Figure 3, PFM and PFM-FT | `pfm`, `pfm_ft` (seed 0) | `figures/frozen_agg_merged.py` |
+| Table 2, MIMIC-5k row | `MIMIC-5k` in `results/log_stats.csv` | `figures/make_datasets_table.py` |
 
-Consequences worth knowing:
+With these arms the artifact reproduces 115 of Table 5's 125 cells exactly and every row of Table 6.
 
-* Table 6's GIN-15 and no-latent rows come from different pretraining seeds. Seed-matched, the future-latent
-  objective changes next-activity accuracy by -1.1, +0.6 and +0.2 points at seeds 0, 1 and 2 (three-seed mean
-  73.0 vs 73.1), i.e. it is within seed noise; remaining-time MAE is 6.14 vs 6.28. `make_table_ablation_v2.py`
-  prints the seed-matched comparison under the main table.
-* `BASELINE_SET=v2 python figures/sota_agg_plot.py` reads the later baseline re-run, which exists only for
-  BPI13 and BPI17 and differs by up to 3 points (BPI17 SuTraN remaining count 16.4 published vs 21.1).
-* Figure 3 uses the seed-0 backbone, Table 5 the seed-2 one, so the same arm differs by about one accuracy
-  point between them (72.4% vs 73.3% aggregate next activity).
+**Last-digit differences.** Ten Table 5 cells and the MIMIC-5k mean case duration (4.90 here, 4.97 printed)
+differ by one unit or less; probe training is not bit-deterministic on GPU, and the published run is the one
+of record. One larger gap: FM-v2's BPI13 remaining time reads about 22 days in Table 5 and 17.3 (proto) /
+16.3 (kNN) here with the validation-selected k.
 
-**Values we could not reproduce.**
+**Two items that are not rounding**, kept here because a reader regenerating the tables will hit them:
 
-* *Win counts (Section 4.2).* "PFM-FT achieves the better mean result in 19 of the 35 cases" comes out as 32
-  of 35 against seed-0 PFM (28 against seed-2), or 25/9 ties and 21/11 ties when counted on the rounded Table 5
-  values. "PFM achieves the better mean in 19 settings, with two ties" against SuTraN comes out as 18 with no
-  ties. The magnitudes are unaffected: PFM-FT's median advantage is 2.4 accuracy points and 3.2% relative MAE.
-* *Table 2, MIMIC-5k mean case duration.* The artifact computes 4.90 days for the 5,000-case subset; the table
-  prints 4.97, which is the full-MIMIC value. Every other cell of that row matches the subset.
-* *Table 5, ten of its 125 cells.* With the arms above the artifact reproduces 115 cells exactly. The rest:
+* *Win counts (Section 4.2).* Counting strictly better means over the 35 settings gives 32 of 35 for PFM-FT
+  against PFM (28 against the seed-2 arm) and 18 with no ties for PFM against SuTraN, where the text says 19
+  and 19-with-two-ties. The magnitudes behind the argument are unaffected: PFM-FT's median advantage is 2.4
+  accuracy points and 3.2% relative MAE.
+* *Table 6 seeds.* Its GIN-15 and no-latent rows come from different pretraining seeds (2 and 1). Seed-matched,
+  the future-latent objective changes next-activity accuracy by -1.1, +0.6 and +0.2 points at seeds 0, 1 and 2
+  (three-seed mean 73.0 vs 73.1) and remaining-time MAE by 6.14 vs 6.28. `make_table_ablation_v2.py` prints
+  that comparison under the main table.
 
-  | Cell | Printed | Artifact |
-  |---|---|---|
-  | BPI13, rem. time, FM-v2 Proto / kNN | 22.3 / 22.2 | 17.3 / 16.3 (validation-selected k) |
-  | BPI13, rem. count, PFM | 2.1 | 2.2 |
-  | BPI17, rem. time, PFM | 7.2 | 7.1 |
-  | BPI20ID, next time / rem. time, PFM | 3.5 / 12.6 | 3.6 / 12.8 |
-  | Helpdesk, future set, PFM | 90 | 89 |
-  | MIMIC-5k, next act. / next-5 / rem. count, PFM | 60 / 57 / 0.5 | 59 / 56 / 0.6 |
-  | MIMIC-5k, future set, PFM-FT | 83 | 82 |
-
-  No single arm assignment closes these: Helpdesk and BPI17 need the seed-2 backbone for PFM, MIMIC-5k is
-  closer to seed 0 (which gives next-5 57 and next act 59), and MIMIC-5k's PFM-FT future set matches the
-  seed-2 finetune (83) while BPI20ID's PFM-FT matches the seed-0 one (88). Table 5 therefore appears to mix
-  runs; every difference is within 1 unit except FM-v2's BPI13 remaining time.
+**Baseline replays.** `BASELINE_SET=v2 python figures/sota_agg_plot.py` reads a later re-run of SuTraN and
+FM-v2 that exists only for BPI13 and BPI17 and differs by up to 3 points (BPI17 SuTraN remaining count 16.4
+published vs 21.1). The default is the published set.
 
 **Counting convention.** "683 activity names" in the pretraining corpus is the vocabulary size including the
 four reserved tokens `<PAD> <UNK> <CLS> <MASK>`; there are 679 distinct activity names.

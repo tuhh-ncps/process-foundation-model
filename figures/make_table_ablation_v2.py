@@ -24,7 +24,7 @@ LOGS = ["helpdesk", "bpi13_incidents", "mimic_transfer", "BPI20ID", "BPI17"]
 # submitted table with a specific replica: GIN-15 with the seed-2 backbone (gin15_s2) and the no-latent
 # variant with the seed-1 backbone (latent0_s1). Those two rows are therefore NOT seed-matched with each
 # other; the seed replication printed below this table gives the matched comparison, and REPRODUCE.md
-# ("Differences from the submitted manuscript") says what changes under it.
+# ("Mapping the artifact onto the published tables") says what changes under it.
 VAR = [("gin15_s2", "GIN-15 (full)"), ("mlp15", "MLP-15"), ("raw15", "raw-15"), ("gin11", "GIN-11"), ("gin0", "GIN-0"),
        ("latent0_s1", "no latent"), ("norole", "no role")]
 ACC = [("next_activity", "Next act. (acc)"), ("next_3_activities", "Next-3 (acc)"), ("next_5_activities", "Next-5 (acc)"),
