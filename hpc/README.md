@@ -56,3 +56,6 @@ USE_GPU=1 ARGS="task=evaluate evaluate=label_efficiency ..." sbatch --gres=gpu:1
 | r25 | `bench/bench_cached_pfm.py` | cached-feature wall-clock |
 | r26 | `submit/submit_linhead.py`, `collect/collect_linhead.py` | linear vs MLP regression heads |
 | r27 | `bench/bench_feat_importance.py` | permutation importance of the 15 fingerprint features |
+| r28 | `submit/submit_seed2_grid.py` | label-efficiency curves (PFM, PFM-FT) on the seed-2 GIN-15 backbone |
+| r29 | `submit/submit_scratch_grid.py` | PFM-Scratch: PFM's architecture trained from random init on each target log |
+| r30 | `submit/submit_timing5.py` | pinned wall-clock for PFM-Scratch (common task set, full H200, one job at a time) |

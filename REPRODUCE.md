@@ -177,6 +177,7 @@ Protocol knobs that matter, all leak-relevant:
 | `probe.head_hidden` | `128` gives regression heads an MLP; `0` makes them linear |
 | `finetune=[alias]` | trains that arm end to end (this is PFM-FT) |
 | `finetune_role=[alias]` | trains **only** the role encoder with the head, backbone frozen |
+| `backbones.<a>=random_role` + `finetune=[<a>]` | PFM's architecture from random init, trained end to end (PFM-Scratch) |
 
 Other grids:
 
@@ -184,6 +185,8 @@ Other grids:
 python hpc/submit/submit_linhead.py                  # linear regression heads
 python hpc/submit/submit_seeds.py                    # extra pretraining seeds
 python hpc/submit/submit_rft.py                      # role-encoder-only fine-tuning
+python hpc/submit/submit_seed2_grid.py               # label-efficiency curves on the seed-2 backbone
+python hpc/submit/submit_scratch_grid.py             # PFM-Scratch: PFM architecture trained from scratch
 python hpc/submit/submit_timing3.py <prev-job-id>    # pinned wall-clock, one job at a time
 python hpc/bench/bench_cached_pfm.py <log>           # cached-feature wall-clock
 python hpc/bench/bench_feat_importance.py <log>      # fingerprint permutation importance
@@ -230,7 +233,8 @@ Every script in `figures/` reads only from `results/`, so these run on a fresh c
 and no event logs**. Run them from the repository root:
 
 ```bash
-python figures/frozen_agg_merged.py       # Figure 3, label-efficiency panels
+python figures/frozen_agg_merged.py       # Figure 3, label-efficiency panels (seed-0 backbone)
+python figures/frozen_agg_merged.py --seed2   # same panels from the seed-2 backbone (needs r28 collected)
 python figures/sota_agg_plot.py           # writes results/sota_agg_data.csv, then
 python figures/sota_wall_plot.py          # Figure 4, baselines + adaptation cost
 python figures/make_table_ablation_v2.py  # Table 6 and the seed-replication table

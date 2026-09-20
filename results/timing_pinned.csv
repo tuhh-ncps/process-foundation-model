@@ -49,3 +49,8 @@ helpdesk,PFM-standard-inproc,2,0.2556420552156245,H200 full,r25 in-process basel
 mimic_transfer,PFM-cached,2,0.3189349760534242,H200 full,r25 job 50s minus standard 30.9s
 mimic_transfer,PFM-cached-inproc,2,0.16285993051715195,H200 full,r25 encode+heads only
 mimic_transfer,PFM-standard-inproc,2,0.5143983572799091,H200 full,r25 in-process baseline
+helpdesk,PFM-Scratch,2,0.38333333333333336,H200 full,r30 4525
+mimic_transfer,PFM-Scratch,2,1.15,H200 full,r30 4526
+bpi13_incidents,PFM-Scratch,2,0.9333333333333333,H200 full,r30 4527
+BPI20ID,PFM-Scratch,2,1.0833333333333333,H200 full,r30 4528
+BPI17,PFM-Scratch,2,16.033333333333335,H200 full,r30 4529
