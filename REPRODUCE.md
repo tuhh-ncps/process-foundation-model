@@ -197,8 +197,8 @@ python hpc/submit/submit_rft.py                      # role-encoder-only fine-tu
 python hpc/submit/submit_seed2_grid.py               # label-efficiency curves on the seed-2 backbone
 python hpc/submit/submit_scratch_grid.py             # PFM-Scratch: PFM architecture trained from scratch
 python hpc/submit/submit_timing3.py <prev-job-id>    # pinned wall-clock, one job at a time
-python hpc/bench/bench_cached_pfm.py <log>           # cached-feature wall-clock
-python hpc/bench/bench_feat_importance.py <log>      # fingerprint permutation importance
+python scripts/bench_cached_pfm.py <log>           # cached-feature wall-clock
+python scripts/bench_feat_importance.py <log>      # fingerprint permutation importance
 ```
 
 ### Baselines

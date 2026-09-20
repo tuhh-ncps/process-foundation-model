@@ -31,7 +31,7 @@ stage = sys.argv[1] if len(sys.argv) > 1 else ""
 DRY = "--dry" in sys.argv
 assert stage in ("validate", "ladder", "chain", "run", "tasks"), __doc__
 TASKS6 = "next_3_activities,next_5_activities,future_activity_set,next_time,remaining_time,remaining_count"
-BENCH = next((p for p in ("hpc/bench/bench_cached_pfm.py", "bench_cached_pfm.py") if os.path.exists(p)), None)
+BENCH = next((p for p in ("scripts/bench_cached_pfm.py", "bench_cached_pfm.py") if os.path.exists(p)), None)
 assert BENCH, "bench_cached_pfm.py not found (run from the repository root)"
 
 art = json.load(open(ART))

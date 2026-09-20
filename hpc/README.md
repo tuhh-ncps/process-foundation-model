@@ -36,7 +36,7 @@ python hpc/submit/submit_v2.py main
 python scripts/collect_v2.py > results.csv
 ```
 
-`bench/bench_feat_importance.py` imports `bench_cached_pfm`, so those two must stay together.
+`scripts/bench_feat_importance.py` imports `bench_cached_pfm`, so those two must stay together.
 
 The sbatch runners (now at `slurm/ncps/`, the path the submitters expect) take the hydra overrides through the `ARGS` environment variable and a
 `USE_GPU=1` flag, for example:
@@ -53,9 +53,9 @@ USE_GPU=1 ARGS="task=evaluate evaluate=label_efficiency ..." sbatch --gres=gpu:1
 | r19, r22 | `submit/submit_seeds.py`, `submit/submit_seedprobes*.py` | pretraining-seed replication |
 | r23 | `submit/submit_rft.py` | PFM-RFT, role encoder fine-tuned with the backbone frozen |
 | r16, r17, r24 | `submit/submit_timing*.py` | pinned wall-clock measurements |
-| r25 | `bench/bench_cached_pfm.py` | cached-feature wall-clock |
+| r25 | `scripts/bench_cached_pfm.py` | cached-feature wall-clock |
 | r26 | `submit/submit_linhead.py`, `scripts/collect_linhead.py` | linear vs MLP regression heads |
-| r27 | `bench/bench_feat_importance.py` | permutation importance of the 15 fingerprint features |
+| r27 | `scripts/bench_feat_importance.py` | permutation importance of the 15 fingerprint features |
 | r28 | `submit/submit_seed2_grid.py` | label-efficiency curves (PFM, PFM-FT) on the seed-2 GIN-15 backbone |
 | r29 | `submit/submit_scratch_grid.py` | PFM-Scratch: PFM's architecture trained from random init on each target log |
 | r30 | `submit/submit_timing5.py` | pinned wall-clock for PFM-Scratch (common task set, full H200, one job at a time) |
