@@ -28,7 +28,7 @@ flowchart LR
     R -->|"Hydra overrides"| E
     E -->|reads| L
     E -->|"writes run dirs"| O
-    R -->|"submits via hpc/"| S
+    R -->|"one train.py run per job"| S
     S -->|runs| E
     B -->|"scored on the same<br/>exported prefixes"| O
 ```

@@ -36,16 +36,9 @@ hard-coded.
 
 ### On a cluster
 
-`slurm/ncps/run.sbatch` runs the same entrypoint inside Apptainer. It reads Hydra overrides from the
-`ARGS` environment variable:
-
-```bash
-USE_GPU=1 ARGS="task=evaluate evaluate=label_efficiency ..." \
-  sbatch --gres=gpu:1 --cpus-per-task=4 --export=ALL slurm/ncps/run.sbatch
-```
-
-The scripts in `hpc/` expect to be invoked **from the repository root**, because their paths are
-relative to the working directory rather than to the script. See [`hpc/README.md`](hpc/README.md).
+Every run is one `train.py` invocation with Hydra overrides, so any scheduler works: submit the
+same command however your site does it. The cluster submitters we used are internal and not part
+of this release; the commands below are exactly what they pass to `train.py`.
 
 ---
 
@@ -149,7 +142,13 @@ decay 0.01, batch 96, gradient clipping 1.0.
 All seven ablation variants at once:
 
 ```bash
-python hpc/submit/submit_pretrain_v2.py            # gin15 mlp15 raw15 gin11 gin0 latent0 norole
+python train.py task=pretrain model=role_gin15 \
+    data=multi ++data.datasets=[bpi12_solo,bpi18,bpi19,road_traffic,hospital_billing,bpi11] \
+    freeze_role=true ar.time_weight=1.0 ar.remaining_time_weight=1.0 model.id_dropout=1.0 \
+    ar.jepa_weight=1.0 role_init_from=<role-encoder run id> tag=-v2-gin15 seed=0
+
+# the six ablation backbones: model=role_mlp15 | role_raw15 | role_gin11 | role_gin0 (tag -v2-<name>),
+# latent0 = role_gin15 with ar.jepa_weight=0, norole = role_gin15 with model.role_dim=0
 ```
 
 The paper's backbone is `backbone-20260906-153102-multi-none-v2-gin15-17fc3c`.
@@ -158,10 +157,17 @@ The paper's backbone is `backbone-20260906-153102-multi-none-v2-gin15-17fc3c`.
 
 The main grid: three arms × five held-out logs × eight label budgets × three seeds × seven tasks.
 
-```bash
-python hpc/submit/submit_v2.py main          # PFM, Frozen Random, PFM-FT
-python hpc/submit/submit_v2.py ablation      # the six backbone variants, full budget
-```
+Every cell is one `train.py` run; the arms differ only in their backbone/finetune overrides:
+
+| Arm | Overrides |
+|---|---|
+| PFM (frozen) | `+evaluate.backbones.pfm=<backbone run id>` |
+| PFM-FT | `+evaluate.backbones.pfm_ft=<id>` `+evaluate.finetune=[pfm_ft]` |
+| Frozen Random | `+evaluate.backbones.random_role=random_role` |
+| PFM-Scratch | `+evaluate.backbones.pfm_scratch=random_role` `+evaluate.finetune=[pfm_scratch]` |
+
+MIMIC adds `+evaluate.eval_log.max_traces=5000`; the ablation grid uses
+`evaluate.label_sizes=[null]` (full budget only).
 
 A single cell, if you want to run one by hand:
 
@@ -191,14 +197,12 @@ Protocol knobs that matter, all leak-relevant:
 Other grids:
 
 ```bash
-python hpc/submit/submit_linhead.py                  # linear regression heads
-python hpc/submit/submit_seeds.py                    # extra pretraining seeds
-python hpc/submit/submit_rft.py                      # role-encoder-only fine-tuning
-python hpc/submit/submit_seed2_grid.py               # label-efficiency curves on the seed-2 backbone
-python hpc/submit/submit_scratch_grid.py             # PFM-Scratch: PFM architecture trained from scratch
-python hpc/submit/submit_timing3.py <prev-job-id>    # pinned wall-clock, one job at a time
-python scripts/bench_cached_pfm.py <log>           # cached-feature wall-clock
-python scripts/bench_feat_importance.py <log>      # fingerprint permutation importance
+# probe and backbone variants are the same command with one override changed:
+#   linear regression heads       evaluate.probe.head_hidden=0
+#   role-encoder-only finetuning  +evaluate.finetune_role=[pfm_rft]
+#   seed-2 backbone               +evaluate.backbones.pfm_s2=<seed-2 backbone id>
+python scripts/bench_cached_pfm.py <log>            # cached-feature wall-clock
+python scripts/bench_feat_importance.py <log>       # fingerprint permutation importance
 ```
 
 ### Baselines
@@ -208,8 +212,17 @@ python scripts/bench_feat_importance.py <log>      # fingerprint permutation imp
 python scripts/export_splits.py  --log helpdesk --path data/raw/helpdesk.csv --out exports/helpdesk_splits.csv
 python scripts/export_queries.py --log helpdesk --path data/raw/helpdesk.csv --max-trace-len 64 \
     --splits-csv exports/helpdesk_splits.csv --out exports/helpdesk_queries.csv
-python hpc/submit/submit_sutran.py   # SuTraN, non-data-aware, equal-weighted, CaLenDiR
-python hpc/submit/submit_fmv2.py     # FM-v2, released 4-expert checkpoint, k chosen on validation
+# SuTraN: build its tensors from our splits, train it in its own repository, then score with our adapter
+python scripts/sutran_build.py   --splits exports/helpdesk_splits.csv --queries exports/helpdesk_queries.csv \
+    --out <SuTraN_Plus>/HELPDESK --log HELPDESK --window 64
+python scripts/sutran_metrics.py --results <SuTraN_Plus>/HELPDESK/.../TEST_SET_RESULTS \
+    --data <SuTraN_Plus>/HELPDESK --log-prefix HELPDESK --splits exports/helpdesk_splits.csv \
+    --log helpdesk --seed 1 --out results/baselines/sutran_v2/helpdesk_s1.csv
+
+# FM-v2: retrieval evaluation against its released checkpoint
+python scripts/fmv2_eval.py --repo <events-transf> --checkpoint-dir <fmv2 checkpoints> \
+    --splits exports/helpdesk_splits.csv --queries exports/helpdesk_queries.csv --log helpdesk \
+    --tasks next_activity,remaining_time --k 5 10 20 --out results/baselines/fmv2_v2/helpdesk.csv
 ```
 
 Both baselines are scored on the **same exported prefixes** as PFM, which is what makes the
@@ -224,15 +237,15 @@ at the end of that file, and `protocols/feature_ladder_waivers.json` records the
 python scripts/feature_ladder.py --data-dir data/raw \
     --out results/feature_ladder.json --fingerprints results/feature_ladder_fingerprints.npz
 python scripts/feature_ladder.py --selftest          # synthetic checks, no data needed
-python hpc/submit/submit_feature_ladder.py           # r31: 15 role encoders, then 15 backbones
-python hpc/submit/submit_feature_ladder_eval.py validate   # r32: C2 gate, then the ladder evaluation
-python hpc/submit/submit_feature_ladder_eval.py tasks      # r33: the six further tasks (A2)
+# phases B and C are 15 role encoders + 15 backbones + 240 evaluation runs: same commands as above
+# with model.role_feature_mask=<mask from results/feature_ladder.json> and tag=-v2-fb<k>,
+# then scripts/bench_cached_pfm.py --backbone <fb-k backbone> --tasks next_activity per (log, seed)
 python scripts/feature_ladder_analysis.py c2         # -> results/feature_ladder_c2.json
 python scripts/feature_ladder_analysis.py report     # -> results/feature_ladder_summary.{csv,json}
 python scripts/feature_ladder_tasks_analysis.py      # -> results/feature_ladder_tasks_summary.{csv,json}
 ```
 
-Phase A is CPU-only and reads the six pretraining logs; phases B and C need the cluster. The frozen
+Phase A is CPU-only and reads the six pretraining logs; phases B and C are 270 GPU runs. The frozen
 order is `CHFNJBMLDOKGIEA`, and the C2 gate stands at `PASSED_WITH_WAIVER` (A1: the cached evaluator
 disagrees with the standard path by up to 0.043 accuracy, so ladder budgets are compared only with
 each other, never with the main result tables).
@@ -316,7 +329,7 @@ TikZ sources under `docs/`, which is not published.
 | Role-space t-SNE | `gin15_seen_unseen.py` |
 | Latent-objective seed replication | `submit_seeds.py`, `submit_seedprobes_remaining.py` |
 
-Run tags in `hpc/README.md` map each submitter to the batch it produced.
+Run tags (r14, r28, r31 ...) in the commit history map each batch to the grid it produced.
 
 ## 9. Compute cost
 

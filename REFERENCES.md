@@ -44,7 +44,7 @@ list per-dataset DOIs we could not verify.
 
 ## Baselines we compare against
 
-Neither is vendored here. Fetch them from the authors, then use our wrappers in `hpc/submit/` and
+Neither is vendored here. Fetch them from the authors, then use our adapters in `scripts/` and
 the exported prefix manifests from `scripts/export_queries.py` so that every method is scored on
 identical queries.
 

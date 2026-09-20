@@ -8,7 +8,7 @@ Representations for Predictive Process Monitoring"* (Tran, Wölker, Landsiedel -
 | **Reproduce the experiments** | [REPRODUCE.md](REPRODUCE.md) |
 | **Understand the codebase** | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | **Result data behind every number** | [`results/`](results/) |
-| **Cluster job scripts that produced them** | [`hpc/`](hpc/) |
+| **Scripts that produced them** | [`scripts/`](scripts/) |
 | **Datasets, baselines, licences** | [REFERENCES.md](REFERENCES.md) |
 
 ---
