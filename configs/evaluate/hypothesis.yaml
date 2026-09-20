@@ -1,7 +1,7 @@
 # Label-efficiency HYPOTHESIS: does a pretrained foundation backbone reach a target with FEWER
 # labels than a normal transformer trained from scratch? Same dataset for training + eval (in-domain).
 #
-#   make eval_ncps EVAL=hypothesis EVAL_DATASET=BPI12 \
+#   python train.py task=evaluate evaluate=hypothesis evaluate.eval_dataset=BPI12 \
 #       BACKBONES='{scratch:random,foundation:<backbone_run_id>}'
 #
 # - `scratch`     : random-init transformer trained END-TO-END on the labels (the normal baseline).

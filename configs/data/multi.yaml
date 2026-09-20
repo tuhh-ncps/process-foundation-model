@@ -1,6 +1,6 @@
 # Multi-dataset training: train ONE backbone on several corpora at once.
 # Pick the datasets on the CLI as a comma list, e.g.
-#   make submit_oland EXPERIMENT=role DATASET=mimic_transfers,bpi12
+#   python train.py task=pretrain experiment=role data=multi ++data.datasets=[mimic_transfers,bpi12]
 # The sbatch turns DATASET=a,b into  `data=multi ++data.datasets=[a,b]`.
 #
 # Each name refers to an existing configs/data/<name>.yaml (single source of truth for its
