@@ -36,7 +36,7 @@ positional descriptors computed from the directly-follows graph (DFG). A frozen 
 fingerprint plus one hop of graph context into a **role embedding**. A causal transformer consumes
 role embeddings and event times. Neither component is updated for a new log.
 
-![Three-phase pipeline](assets/pipeline_full.png)
+![Pretrain once, then reuse the frozen model on new logs and tasks](assets/workflow.png)
 
 Three phases, and the first two happen exactly once:
 
