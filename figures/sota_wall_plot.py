@@ -70,16 +70,25 @@ ax = axes[2]
 x = np.arange(len(LOGS))
 # \PFM's adaptation cost is measured with the frozen features CACHED once per log (the backbone is
 # frozen, so it need not be re-run every epoch); PFM-RFT is left out of this panel for readability.
-for name, method, tasks, mk in (("PFM", "PFM-cached", 2, "o"), ("PFM-FT", "PFM-FT", 2, "s"),
-                                ("SuTraN", "SuTraN", 7, "^"), ("FM-v2", "FM-v2", 2, "v")):
+# PFM-Scratch is the same architecture trained end to end from random init on the target log.
+# SuTraN's `7` is the timing file's task count: all seven tasks are SCORED from its outputs, but it
+# trains only its three prediction heads in one joint run per log.
+WALL = [("PFM", "PFM-cached", 2, "#7ecfcf"), ("PFM-FT", "PFM-FT", 2, "#0f6470"),
+        ("PFM-Scratch", "PFM-Scratch", 2, "#2f9ea6"), ("SuTraN", "SuTraN", 7, "#d62728"),
+        ("FM-v2", "FM-v2", 2, "#4d8b1f")]
+bw = 0.16
+for j, (name, method, tasks, color) in enumerate(WALL):
     y = [minutes(lg, method, tasks) for lg, _ in LOGS]
-    ax.plot(x, y, color=COL["FM-v2 Proto" if name == "FM-v2" else name], ls="solid", marker=mk, ms=6, lw=1.9,
-            markeredgecolor="white", markeredgewidth=0.7, label=name)
+    ax.bar(x + (j - (len(WALL) - 1) / 2) * bw, y, width=bw, color=color, edgecolor="white",
+           linewidth=0.4, label=name, zorder=3)
 ax.set_yscale("log")
+ax.set_ylim(0.1, 1000)          # bars start at 0.1 min; headroom above for the panel legend
 ax.set_xticks(list(x))
-ax.set_xticklabels([n for _, n in LOGS], rotation=20)
+ax.set_xticklabels([("MIMIC-5k" if n == "MIMIC" else n) for _, n in LOGS], rotation=20)
 ax.set_ylabel("wall-clock (minutes)", fontsize=10)
 ax.set_title("(c) Cost of adaptation to a new log", fontsize=10.5)
+ax.legend(fontsize=8, ncol=2, frameon=False, loc="upper left", handlelength=1.2,
+          columnspacing=1.0, labelspacing=0.3)
 for sp in ("top", "right"):
     ax.spines[sp].set_visible(False)
 
@@ -105,7 +114,8 @@ minutes to adapt to a log and score its test partition for the two tasks all met
 one job at a time, one seed; \emph{FM-v2} embeds once for both read-outs. Because the \PFM{} backbone is frozen its states do
 not depend on the head weights, so they are encoded once per log and both heads are trained from the cached tensors; this
 reaches the same test metrics as re-running the backbone every epoch (max difference $0.009$ accuracy, $3.6\%$ MAE) and is
-what the \PFM{} line reports. \PFM-RFT is omitted from this panel. \emph{\PFM}: frozen backbone with trained heads;
+what the \PFM{} bar reports. \PFM-Scratch is the same architecture trained end to end from random
+init on the target log; \PFM-RFT is omitted from this panel. \emph{\PFM}: frozen backbone with trained heads;
 \emph{\PFM-RFT}: frozen backbone with the role encoder (9.5k parameters, $0.19\%$ of the backbone) trained
 alongside the head; \emph{\PFM-FT}: \PFM{} fine-tuned end to end; \emph{SuTraN}: SuTraN-EW-NDA, official recipe, three seeds; \emph{FM-v2
 Proto/kNN}: retrieval read-outs of the events-transf foundation model with $k$ selected on validation (next activity and

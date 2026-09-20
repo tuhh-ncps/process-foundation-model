@@ -185,13 +185,13 @@ table as the paper. Against **FM-v2** neither method dominates on the two tasks 
 Panel (c) is the part the paper leads with. Adapting to a new log and scoring its test partition, on
 one NVIDIA H200, for the two tasks every method supports:
 
-| Log | PFM | PFM-FT | FM-v2 | SuTraN |
-|---|---|---|---|---|
-| Helpdesk | **0.19** | 0.43 | 0.92 | 2.40 |
-| MIMIC | **0.32** | 0.87 | 1.57 | 4.87 |
-| BPI13 | **0.39** | 1.07 | 3.75 | 8.73 |
-| BPI20ID | **0.31** | 0.90 | 4.77 | 15.38 |
-| BPI17 | **1.52** | 6.52 | 48.52 | 289.57 |
+| Log | PFM | PFM-FT | PFM-Scratch | FM-v2 | SuTraN |
+|---|---|---|---|---|---|
+| Helpdesk | **0.19** | 0.43 | 0.38 | 0.92 | 2.40 |
+| MIMIC-5k | **0.32** | 0.87 | 1.15 | 1.57 | 4.87 |
+| BPI13 | **0.39** | 1.07 | 0.93 | 3.75 | 8.73 |
+| BPI20ID | **0.31** | 0.90 | 1.08 | 4.77 | 15.38 |
+| BPI17 | **1.52** | 6.52 | 16.03 | 48.52 | 289.57 |
 
 Minutes. PFM's figure uses **cached features**: because the backbone is frozen its states do not
 depend on head weights, so it is encoded once per log and every head trains from the cache. That
