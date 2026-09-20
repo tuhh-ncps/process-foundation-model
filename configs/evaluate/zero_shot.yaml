@@ -5,7 +5,7 @@
 #       evaluate.eval_log.path=/workspace/data/raw/mimic_transfers.csv
 mode: zero_shot
 backbones: {}              # {alias: role_backbone_run_id, ...}  (must have a saved matching head)
-eval_dataset: BPI12        # downstream dataset — MAY differ from the backbone's
+eval_dataset: BPI12        # downstream dataset - MAY differ from the backbone's
 eval_log:
   path: ${paths.data_dir}/${evaluate.eval_dataset}.xes
 strip_to_control_flow: true
@@ -14,6 +14,6 @@ split: [0.70, 0.15, 0.15]
 topk: [1, 3, 5]            # top-k accuracies to report
 probe: {batch_size: 128}   # forward batch size (no training)
 adapt: {steps: 0, lr: 1.0e-3}   # >0: LABEL-FREE contrastive adaptation of the GIN to the target
-                                # graph before matching (no labels) — specializes e(a) to the target
+                                # graph before matching (no labels) - specializes e(a) to the target
 model: ${model}            # only used for max_seq_len default
 name: zero-shot-matching

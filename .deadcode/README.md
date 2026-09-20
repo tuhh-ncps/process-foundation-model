@@ -1,4 +1,4 @@
-# .deadcode — removed from the live code path
+# .deadcode - removed from the live code path
 
 These 15 modules are **not used by anything in the paper**. They are kept here rather than deleted
 so the history of the project stays legible; git preserves them either way.
@@ -62,8 +62,8 @@ frozen.
 Removing the DINO path orphaned three things that live inside files still in use, so they were left
 alone rather than risk editing live code:
 
-- `data/dataset.py` — `DinoTraceDataset` and `collate_dino`
-- `data/augmentations.py` — `TraceAugmentation`, `SubTraceCrop`, `EventMasking`,
+- `data/dataset.py` - `DinoTraceDataset` and `collate_dino`
+- `data/augmentations.py` - `TraceAugmentation`, `SubTraceCrop`, `EventMasking`,
   `AttributeDropout`, `TemporalJitter`; only `MultiCropTraceAugmenter` and `TraceView` are still
   referenced, and only by `DinoTraceDataset`
 - `data/datamodule.py` also defined `OutcomeDataModule`, which had no users even before this change

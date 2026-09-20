@@ -3,7 +3,7 @@
 
 Old = probe.max_epochs 15 / patience 3 (what the current curves used).
 New = probe.max_epochs 100 / patience 10 (the ue-longprobe jobs).
-Everything else — backbone, log, split, seeds — is identical, so any change is
+Everything else - backbone, log, split, seeds - is identical, so any change is
 optimisation budget alone.
 """
 from __future__ import annotations

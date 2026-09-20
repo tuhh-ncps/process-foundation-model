@@ -47,7 +47,7 @@ FEATNAMES = [
     "rework_p",
 ]
 
-# corpus members (as trained) + Sepsis (the eval target) — capped for speed
+# corpus members (as trained) + Sepsis (the eval target) - capped for speed
 SETS = [
     ("BPI12", RAW / "BPI12.xes", "xes", 3000),
     ("BPI18", RAW / "BPI18.xes", "xes", 2000),
@@ -139,7 +139,7 @@ def main() -> None:
         f"{FEATNAMES[int(DS.mean(0).argmax())]:>16}"
     )
     print(
-        "  (*Sepsis measured against a union that includes it — the shift its activities would"
+        "  (*Sepsis measured against a union that includes it - the shift its activities would"
         "\n   undergo between eval-style solo fitting and training-style union fitting)"
     )
 

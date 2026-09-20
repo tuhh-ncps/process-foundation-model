@@ -1,6 +1,6 @@
 """The reusable trace backbone: embeddings + encoder.
 
-This is the unit of transfer — pretrained once via DINO, then frozen or finetuned
+This is the unit of transfer - pretrained once via DINO, then frozen or finetuned
 under task heads. Checkpoints store the (teacher) backbone plus its FeatureSpec.
 """
 

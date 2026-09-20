@@ -1,4 +1,4 @@
-# BPI Challenge 2020 — International Declarations (travel-expense approval process).
+# BPI Challenge 2020 - International Declarations (travel-expense approval process).
 # A genuinely different domain from loans (BPI12/17) and hospital transfers (MIMIC): declaration +
 # permit approval chains through administration / budget owner / supervisor / director. Used as a
 # HELD-OUT domain for few-shot transfer tests, and can join multi-domain pretraining.

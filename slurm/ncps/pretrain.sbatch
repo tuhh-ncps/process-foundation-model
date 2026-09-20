@@ -8,7 +8,7 @@
 #SBATCH --gres=gpu:nvidia_h200_nvl_1g.18gb:1
 #SBATCH --cpus-per-task=8                ##EDIT## ~1 core actually used; 4 leaves DataLoader headroom
 #SBATCH --mem=64G                        ##EDIT## multi-domain corpus peaks ~13G RAM (streaming reader); 32G is safe
-#SBATCH --time=20:00:00                 ##EDIT## walltime — 15 epochs on the small 1g.18gb slice is slow
+#SBATCH --time=20:00:00                 ##EDIT## walltime - 15 epochs on the small 1g.18gb slice is slow
 #SBATCH --partition=main                ##EDIT## GPU partition
 #SBATCH --account=ncps-team             ##EDIT## allocation/account (sacctmgr show assoc user=$USER)
 #SBATCH --output=logs/%x-%j.out

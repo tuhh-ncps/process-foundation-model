@@ -6,13 +6,13 @@
 # so code edits don't require a rebuild (see slurm/pretrain_ddp.sbatch).
 #
 # Build:  cd hpc_training && apptainer build $SCRATCH/pmfoundation.sif containers/pmfoundation.def
-# (cd hpc_training first; %files copies THIS folder — the standalone HPC project — into the image)
+# (cd hpc_training first; %files copies THIS folder - the standalone HPC project - into the image)
 
 Bootstrap: docker
 From: pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime
 
 %files
-    # Copy ONLY what `pip install .` needs — NOT the whole repo. Copying `.` pulls in
+    # Copy ONLY what `pip install .` needs - NOT the whole repo. Copying `.` pulls in
     # `.venv` (broken symlinks fail the build), `data/raw` (tens of GB of logs/MIMIC),
     # `outputs/`, and `.git`. The live repo is bind-mounted at runtime and prepended to
     # PYTHONPATH, so the image only needs the package sources to build the wheel.

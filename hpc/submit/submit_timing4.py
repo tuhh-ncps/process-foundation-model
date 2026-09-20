@@ -1,6 +1,6 @@
 """Setting 1 timing for the PFM-RFT arm (role encoder fine-tuned, transformer frozen): common task set
 (next_activity, remaining_time), full budget, one seed, each job pinned to a full H200 and chained
-afterany so exactly one timing job runs at a time — identical protocol to r17 (submit_timing3.py)."""
+afterany so exactly one timing job runs at a time - identical protocol to r17 (submit_timing3.py)."""
 import glob, json, os, subprocess, sys
 GRES = "--gres=gpu:nvidia_h200_nvl:1"
 LOGS = [("helpdesk", "/workspace/data/raw/helpdesk.csv", ""), ("mimic_transfer", "/workspace/data/raw/mimic_transfers.csv", "+evaluate.eval_log.max_traces=5000"),

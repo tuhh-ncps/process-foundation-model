@@ -1,14 +1,14 @@
-"""Standalone role-encoder pretraining — trains the vocabulary-free ActivityEncoder BY ITSELF.
+"""Standalone role-encoder pretraining - trains the vocabulary-free ActivityEncoder BY ITSELF.
 
 No backbone, no transformer, no AR heads: this optimizes the role encoder alone so a backbone can
 later just *read* its ``e(a)`` table (``role_encoder.pt``). Objective is **role-aware**:
 
-* contrastive view-consistency (``ActivityEncoder.contrastive_loss`` — anti-collapse / stability),
+* contrastive view-consistency (``ActivityEncoder.contrastive_loss`` - anti-collapse / stability),
 * cross-log start/end **SupCon** (pull same-role activities together ACROSS logs, on the fused e(a)),
 * a linear **role-CE** head (sharpen the linear start/end axis; train-time only, not saved).
 
-Quality is *controlled*: every epoch scores a COMPOSITE on HELD-OUT logs —
-``cross-log same-role@5 + start-vs-end transfer + subsampling stability`` — EMA-smoothed, and the
+Quality is *controlled*: every epoch scores a COMPOSITE on HELD-OUT logs -
+``cross-log same-role@5 + start-vs-end transfer + subsampling stability`` - EMA-smoothed, and the
 best checkpoint is kept. A raw-fingerprint reference composite is recorded for context (the hand
 fingerprint is a strong baseline; see docs). Metrics are numpy-only (no sklearn dependency); the
 encoder is tiny so this runs single-process (no DDP).
@@ -157,7 +157,7 @@ def train_role_encoder(config: dict[str, Any]) -> Path:
 
     # ---- build role graphs (train-split only; leak-free). val logs also get a 50% subsample ----
     # Aggregator (mean|sum): see roles.apply_aggregator / DirectedGinLayer. Default mean; 'sum' is
-    # true-GIN. Must match the consumer's aggregator — here trainer and eval are the same process.
+    # true-GIN. Must match the consumer's aggregator - here trainer and eval are the same process.
     aggregator = str(mcfg.get("aggregator", "mean"))
 
     graphs: dict[str, dict[str, Any]] = {}
@@ -325,7 +325,7 @@ def _plot_quality(png: Path, history, fp_comp, best_epoch, train_names, val_name
     ax.set_ylim(0, 1.02)
     ax.set_xlabel("epoch")
     ax.set_ylabel("held-out quality")
-    ax.set_title(f"Standalone role-encoder quality — train {train_names} · held-out {val_names}",
+    ax.set_title(f"Standalone role-encoder quality - train {train_names} · held-out {val_names}",
                  fontsize=10)
     ax.legend(fontsize=8, loc="lower right")
     ax.grid(alpha=0.25)

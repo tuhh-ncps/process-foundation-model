@@ -48,7 +48,7 @@ Neither is vendored here. Fetch them from the authors, then use our wrappers in 
 the exported prefix manifests from `scripts/export_queries.py` so that every method is scored on
 identical queries.
 
-**SuTraN** — trained separately per target log, non-data-aware, equal-weighted configuration,
+**SuTraN** - trained separately per target log, non-data-aware, equal-weighted configuration,
 following the authors' CaLenDiR procedure.
 
 > Wuyts, B., Vanden Broucke, S., & De Weerdt, J. (2024). SuTraN: An Encoder-Decoder Transformer for
@@ -59,7 +59,7 @@ following the authors' CaLenDiR procedure.
 > in Deep-Learning-Based Predictive Process Monitoring. *Process Mining Workshops*, LNBIP 533,
 > 253–266. [doi:10.1007/978-3-031-82225-4_19](https://doi.org/10.1007/978-3-031-82225-4_19)
 
-**FM-v2** — the released four-expert checkpoint, loaded without updating its parameters, with `k`
+**FM-v2** - the released four-expert checkpoint, loaded without updating its parameters, with `k`
 selected on validation.
 
 > Berti, A., & van der Aalst, W. M. P. (2026). An In-Context Foundation Model for Predictive Process
@@ -69,7 +69,7 @@ selected on validation.
 > Berti, A., & van der Aalst, W. M. P. (2026). Retrieval-Augmented In-Context Foundation Model for
 > Predictive Process Monitoring. *Preprints*.
 > [doi:10.20944/preprints202607.0705.v1](https://doi.org/10.20944/preprints202607.0705.v1)
-> — preprint, not peer-reviewed.
+> - preprint, not peer-reviewed.
 
 ## Methods we build on
 
@@ -88,7 +88,7 @@ Where each idea enters the code.
 | Process-mining descriptors | van der Aalst, W. M. P. (2016). *Process Mining: Data Science in Action* (2nd ed.). Springer | `data/roles.py` |
 | Trace-encoding choices | Tavares, G. M. et al. (2023). *Engineering Applications of AI*, 126, 107028 | `data/preprocessing.py` |
 | t-SNE | van der Maaten, L., & Hinton, G. (2008). *JMLR*, 9(86), 2579–2605 | `docs/diagrams/gin15_seen_unseen.py` |
-| Foundation-model framing | Bommasani, R. et al. (2021). [arXiv:2108.07258](https://arxiv.org/abs/2108.07258) | — |
+| Foundation-model framing | Bommasani, R. et al. (2021). [arXiv:2108.07258](https://arxiv.org/abs/2108.07258) | - |
 
 Related work positioned in the paper but not used as a baseline: ProcessTransformer (Bukhsh et al.,
 2021), act2vec/trace2vec (De Koninck et al., 2018), BERT-based multi-task PPM (Chen et al., 2022),
@@ -104,4 +104,4 @@ The code in this repository is under [LICENSE](LICENSE). That licence covers **t
 - **MIMIC-IV requires credentialed PhysioNet access** and a signed data use agreement. It cannot be
   shared, which is why `scripts/build_mimic_log.py` builds it from your own copy.
 - **Baseline code is not vendored.** SuTraN and FM-v2 remain under their authors' terms.
-- `results/` contains **derived metrics only** — aggregate numbers, not event data.
+- `results/` contains **derived metrics only** - aggregate numbers, not event data.

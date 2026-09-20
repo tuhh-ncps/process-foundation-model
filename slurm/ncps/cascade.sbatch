@@ -2,7 +2,7 @@
 # Generic frozen-cascade runner. Env:
 #   CAND            short alias (backbone tag + eval alias), e.g. fusedcand
 #   MODEL           configs/model name for Phase 2/3, e.g. role_fused_cand
-#   ROLE_ID         reuse an existing Phase-1 role run (skips Phase 1) — optional
+#   ROLE_ID         reuse an existing Phase-1 role run (skips Phase 1) - optional
 #   ROLE_OVERRIDES  Phase-1 hydra overrides (used when ROLE_ID is empty)
 #   P2_EXTRA        extra Phase-2 overrides, e.g. ar.jepa_weight=1.0
 # Runs Phase 1 (unless reusing) -> Phase 2 -> submits the 4 Phase-3 eval grids.

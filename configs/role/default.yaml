@@ -1,4 +1,4 @@
-# Standalone role-encoder pretraining (task=role_pretrain) — trains the vocabulary-free
+# Standalone role-encoder pretraining (task=role_pretrain) - trains the vocabulary-free
 # ActivityEncoder BY ITSELF, with held-out quality control, and saves role_encoder.pt.
 #   python train.py task=role_pretrain role=default trainer=local
 # Log paths resolve against ${paths.data_dir}. `val_logs` are HELD-OUT: used only to score the

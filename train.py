@@ -1,12 +1,12 @@
-"""Single Hydra entrypoint for HPC — drives the REAL pm_foundation training flows.
+"""Single Hydra entrypoint for HPC - drives the REAL pm_foundation training flows.
 
 The SAME command runs on a laptop or the cluster; only the ``trainer`` (device/strategy) and
-``hydra/launcher`` (where it runs) change, as config — never the code.
+``hydra/launcher`` (where it runs) change, as config - never the code.
 
-    # local AR pretrain (CPU/MPS/1 GPU) — BPI12 is the default dataset
+    # local AR pretrain (CPU/MPS/1 GPU) - BPI12 is the default dataset
     python train.py experiment=role_rope trainer=local
 
-    # Slurm AR pretrain — 2 nodes x 1 GPU, DDP (submitit writes + submits the job)
+    # Slurm AR pretrain - 2 nodes x 1 GPU, DDP (submitit writes + submits the job)
     python train.py -m experiment=role_rope trainer=ddp hydra/launcher=slurm \
         hydra.launcher.partition=gpu hydra.launcher.nodes=2 hydra.launcher.gpus_per_node=1
 
@@ -26,7 +26,7 @@ from pathlib import Path
 
 # Anchor all default paths to THIS project directory (self-contained), regardless of the cwd the
 # job is launched from. An explicit PROJECT_ROOT / DATA_DIR / OUTPUT_DIR still wins (see configs/
-# paths/default.yaml) — this only sets the fallback so `python train.py` works with nothing exported.
+# paths/default.yaml) - this only sets the fallback so `python train.py` works with nothing exported.
 os.environ.setdefault("PROJECT_ROOT", str(Path(__file__).resolve().parent))
 
 import hydra
@@ -71,10 +71,10 @@ def _compose_datasets(run_cfg: dict, data_dir: str) -> dict:
     When ``data.datasets=[name, ...]`` is set, concatenate the log specs of every named
     ``configs/data/<name>.yaml`` (their ``vocab_logs``/``train_logs``) into this run's corpus.
     The existing single-dataset config is the single source of truth for each log's path/format;
-    we only borrow its log lists (never its split/batch/etc — those come from ``multi.yaml``).
+    we only borrow its log lists (never its split/batch/etc - those come from ``multi.yaml``).
     Each dataset still contributes only its TRAIN split downstream (shared ``split``), so a
     multi-dataset backbone = union-vocab model trained on 70% of every corpus, val/test held out.
-    Identity for a plain single-dataset run (no ``datasets`` key) — nothing composed.
+    Identity for a plain single-dataset run (no ``datasets`` key) - nothing composed.
     """
     names = list(run_cfg.get("datasets") or [])
     if not names:
@@ -102,7 +102,7 @@ def _compose_datasets(run_cfg: dict, data_dir: str) -> dict:
 
 
 def _build_logger(cfg: DictConfig):
-    """Build a Lightning logger from cfg.logger, or None. Built on ALL ranks — the WandbLogger is
+    """Build a Lightning logger from cfg.logger, or None. Built on ALL ranks - the WandbLogger is
     lazy, so wandb only actually initializes on global rank 0 (Lightning guards logger access)."""
     node = cfg.get("logger")
     if node is None:
@@ -143,7 +143,7 @@ def _pretrain(cfg: DictConfig) -> str:
 
     if global_rank() == 0:
         print(
-            f"[{cfg.name}] AR pretrain — world_size={world_size()} "
+            f"[{cfg.name}] AR pretrain - world_size={world_size()} "
             f"devices/node={run_cfg['trainer']['devices']} nodes={run_cfg['trainer']['num_nodes']} "
             f"strategy={run_cfg['trainer'].get('strategy', 'auto')}"
         )
@@ -157,7 +157,7 @@ def _role_pretrain(cfg: DictConfig) -> str:
     role_cfg: dict = OmegaConf.to_container(cfg.role, resolve=True)
     role_cfg.setdefault("output_dir", str(cfg.output_dir))
     role_cfg.setdefault("seed", int(cfg.seed))
-    print(f"[{role_cfg.get('name', 'role')}] standalone role-encoder pretrain — "
+    print(f"[{role_cfg.get('name', 'role')}] standalone role-encoder pretrain - "
           f"train {[s.get('name') or s['path'].split('/')[-1] for s in role_cfg['train_logs']]}")
     return str(train_role_encoder(role_cfg))
 
@@ -182,7 +182,7 @@ def _evaluate(cfg: DictConfig) -> str:
     eval_cfg: dict = OmegaConf.to_container(cfg.evaluate, resolve=True)
     eval_cfg.setdefault("output_dir", str(cfg.output_dir))
     mode = str(eval_cfg.get("mode", "label_efficiency"))
-    print(f"[{eval_cfg.get('name', mode)}] evaluate ({mode}) — backbones={eval_cfg['backbones']}")
+    print(f"[{eval_cfg.get('name', mode)}] evaluate ({mode}) - backbones={eval_cfg['backbones']}")
     if mode == "zero_shot":
         from pm_foundation.evaluation.zero_shot import run_zero_shot_matching
 
@@ -192,7 +192,7 @@ def _evaluate(cfg: DictConfig) -> str:
 
 @hydra.main(version_base=None, config_path="configs", config_name="train")
 def main(cfg: DictConfig) -> float:
-    # Use Tensor Cores for fp32 matmuls (H100/L40S/A100) — a free speedup, no accuracy impact
+    # Use Tensor Cores for fp32 matmuls (H100/L40S/A100) - a free speedup, no accuracy impact
     # at this scale. No-op on CPU/MPS.
     import torch
 

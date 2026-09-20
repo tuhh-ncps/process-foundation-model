@@ -1,4 +1,4 @@
-# BPI Challenge 2011 — Dutch academic hospital, gynaecology oncology (healthcare).
+# BPI Challenge 2011 - Dutch academic hospital, gynaecology oncology (healthcare).
 # ~1.1k cases, 150k events, 624 activities: the open-vocab / role-channel workout. Own vocab.
 # Cases are long (up to ~1350 events) -> truncated at model.max_seq_len (64). See docs/dataset_portfolio.md.
 vocab_logs:

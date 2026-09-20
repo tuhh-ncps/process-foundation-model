@@ -24,7 +24,7 @@ _CANONICAL_MAPPING = ColumnMapping(case_id="case_id", activity="activity", times
 class CsvLogReader(LogReader):
     """Reads CSV logs (via pandas) into an :class:`EventLog`.
 
-    ``max_traces`` caps the number of traces read (the first N case_ids in sorted order) —
+    ``max_traces`` caps the number of traces read (the first N case_ids in sorted order) -
     useful for smoke tests and for bounding very large logs (e.g. MIMIC's 546k admissions).
     """
 

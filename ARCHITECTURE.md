@@ -12,7 +12,7 @@ components. They render natively on GitHub.
 
 ---
 
-## Level 1 — system context
+## Level 1 - system context
 
 ```mermaid
 flowchart LR
@@ -33,12 +33,12 @@ flowchart LR
     B -->|"scored on the same<br/>exported prefixes"| O
 ```
 
-One entrypoint, one config tree. Where a run executes — laptop, one GPU, several nodes — is a config
+One entrypoint, one config tree. Where a run executes - laptop, one GPU, several nodes - is a config
 choice, not a code path.
 
 ---
 
-## Level 2 — containers
+## Level 2 - containers
 
 The three phases of the paper map onto three tasks of the same entrypoint.
 
@@ -50,13 +50,13 @@ flowchart TB
     T -->|"task=pretrain"| P1B
     T -->|"task=evaluate"| P2
 
-    subgraph P1A["Phase 1a — role encoder"]
+    subgraph P1A["Phase 1a - role encoder"]
         A1["training/role_pretrain.py<br/>train_role_encoder"]
     end
-    subgraph P1B["Phase 1b — backbone"]
+    subgraph P1B["Phase 1b - backbone"]
         B1["training/ar_pretrain_hpc.py<br/>pretrain_autoregressive_ddp"]
     end
-    subgraph P2["Phase 2 — adaptation"]
+    subgraph P2["Phase 2 - adaptation"]
         C1["evaluation/label_efficiency.py<br/>run_label_efficiency"]
     end
 
@@ -71,16 +71,16 @@ flowchart TB
 
 The arrows between phases are **artifacts on disk, not imports**. Phase 1b loads a role-encoder run
 by id; Phase 2 loads a backbone run by id. That is what makes "frozen" enforceable rather than a
-convention — a downstream phase cannot accidentally update an upstream component because it only
+convention - a downstream phase cannot accidentally update an upstream component because it only
 ever receives a checkpoint.
 
 ---
 
-## Level 3 — components
+## Level 3 - components
 
 ```mermaid
 flowchart TB
-    subgraph data["data/ — logs to tensors"]
+    subgraph data["data/ - logs to tensors"]
         RD["readers/<br/>XES, CSV"]
         PP["preprocessing.py<br/>build_traces, split_log<br/>FeatureSpec"]
         RO["roles.py<br/>fit_role_graph<br/>15 fingerprints + DFG"]
@@ -89,7 +89,7 @@ flowchart TB
         PP --> RO
     end
 
-    subgraph models["models/ — the network"]
+    subgraph models["models/ - the network"]
         RE["role_encoder.py<br/>ActivityEncoder, RoleEmbedder<br/>DirectedGinLayer"]
         EM["embeddings.py<br/>EventEmbedding, TimeEncoder"]
         EN["encoder.py<br/>TraceEncoder (causal, RoPE)"]
@@ -100,23 +100,23 @@ flowchart TB
         EN --> FM
     end
 
-    subgraph ssl["ssl/ — pretraining objectives"]
+    subgraph ssl["ssl/ - pretraining objectives"]
         AR["autoregressive.py<br/>AutoregressiveLitModule<br/>activity, time, remaining, JEPA"]
     end
 
-    subgraph tasks["tasks/ — downstream heads"]
-        BS["base.py — TaskHead"]
+    subgraph tasks["tasks/ - downstream heads"]
+        BS["base.py - TaskHead"]
         MM["multitask_module.py<br/>MultiTaskLitModule<br/>freeze / finetune / finetune_role"]
         TH["next_activity, next_k_activities<br/>next_time, remaining_time<br/>suffix, outcome"]
         BS --> TH --> MM
     end
 
-    subgraph evaluation["evaluation/ — probes and metrics"]
+    subgraph evaluation["evaluation/ - probes and metrics"]
         LE["label_efficiency.py<br/>run_label_efficiency"]
         MT["metrics.py, confusion.py<br/>report.py, rollout.py"]
     end
 
-    subgraph experiments["experiments/ — provenance"]
+    subgraph experiments["experiments/ - provenance"]
         RG["RunRegistry, RunManifest<br/>curves.py"]
     end
 
@@ -168,7 +168,7 @@ flowchart LR
     style experiments fill:#eef2f7,stroke:#4c78a8
 ```
 
-`data` and `experiments` are leaves — they import nothing else in the package, which is why the
+`data` and `experiments` are leaves - they import nothing else in the package, which is why the
 dataset and provenance layers can be used standalone. The one edge that looks like a cycle,
 `tasks → evaluation`, is narrow: task heads import `evaluation.metrics` for the shared
 `classification_metrics` and `regression_metrics` builders, and nothing else.
@@ -239,25 +239,25 @@ the role encoder through a frozen transformer.
 
 ## Key abstractions
 
-**`TraceBackbone`** (`models/foundation_model.py`) — the reusable representation. Holds an
+**`TraceBackbone`** (`models/foundation_model.py`) - the reusable representation. Holds an
 `EventEmbedding`, a `TraceEncoder`, and a swappable `role_encoder`. Its `forward` computes the role
 table `e(a)` once per batch and feeds it to both the embedding and the matching head. Returns an
 `EncoderOutput` with `event_states (B, L, d)` and `trace_embedding (B, d)`.
 
-**`TaskHead`** (`tasks/base.py`) — the extension point. A head declares `target_key`, then implements
+**`TaskHead`** (`tasks/base.py`) - the extension point. A head declares `target_key`, then implements
 `forward`, `loss`, `build_metrics` and `update_metrics`. Adding a prediction task means adding one
 subclass and one entry in the task table; nothing else changes.
 
-**`FeatureSpec`** (`data/preprocessing.py`) — the encoding contract, persisted per run. Input
+**`FeatureSpec`** (`data/preprocessing.py`) - the encoding contract, persisted per run. Input
 encoding uses the *backbone's* spec; categorical targets use the *evaluation log's* vocabulary. That
 split is deliberate: it is what keeps cross-log accuracy honest instead of collapsing to "predict
 UNK".
 
-**Role graph** (`data/roles.py`) — a dict of `feats (V, 15)`, `adj_in`, `adj_out`, `real_mask`. A log
+**Role graph** (`data/roles.py`) - a dict of `feats (V, 15)`, `adj_in`, `adj_out`, `real_mask`. A log
 is fully described to the encoder by this structure, which is why `set_graph` is all that a new log
 requires.
 
-**`RunRegistry` / `RunManifest`** (`experiments/`) — every run writes a directory with its full
+**`RunRegistry` / `RunManifest`** (`experiments/`) - every run writes a directory with its full
 config, git state and metrics. Collectors in `hpc/collect/` filter on manifest fields, so results can
 never silently mix protocols.
 
@@ -268,7 +268,7 @@ never silently mix protocols.
 | Paper section | Code |
 |---|---|
 | §3.1 role fingerprints, Table 1 | `data/roles.py` |
-| §3.1 GIN role encoder, Eq. 1 | `models/role_encoder.py` — `DirectedGinLayer`, `ActivityEncoder` |
+| §3.1 GIN role encoder, Eq. 1 | `models/role_encoder.py` - `DirectedGinLayer`, `ActivityEncoder` |
 | §3.1 role losses | `training/role_pretrain.py` |
 | §3.2 backbone | `models/encoder.py`, `models/embeddings.py` |
 | §3.2 pretraining objectives, Eq. 4 | `ssl/autoregressive.py` |

@@ -27,7 +27,7 @@ def build_confusion(
     """(C, C) integer confusion matrix over ``class_ids`` (rows = true, cols = predicted).
 
     ``class_ids`` lists the vocabulary ids to include, in display order. Any prediction or target
-    id outside that set is dropped — targets are always in-set for next-activity/outcome, so the
+    id outside that set is dropped - targets are always in-set for next-activity/outcome, so the
     guard only catches a stray out-of-set prediction.
     """
     class_ids = class_ids.to(torch.long)

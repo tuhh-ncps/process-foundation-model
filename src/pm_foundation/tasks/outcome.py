@@ -6,20 +6,20 @@ adapter over the per-event states ``H = [h_1 .. h_L]``::
     H --Pool--> z --Linear--> y
 
 so the pooling is identical across tasks and is the only thing between the frozen backbone and
-the linear classifier — removing the confound of relying on whatever the backbone happened to
+the linear classifier - removing the confound of relying on whatever the backbone happened to
 compress into its predefined ``trace_embedding``. Four poolings (``evaluate.pooling``):
 
-  * ``trace``     (P0) — the backbone's own pooled ``trace_embedding`` (the *fixed-summary linear
+  * ``trace``     (P0) - the backbone's own pooled ``trace_embedding`` (the *fixed-summary linear
                          probe*: does the predefined case vector already contain the target?)
-  * ``mean``      (P1) — masked mean over event states, parameter-free
-  * ``last``      (P2) — the last real event state, natural for causal models
-  * ``max``       (P2') — masked element-wise max over event states, parameter-free
-  * ``attention`` (P3) — learned additive attention over event states (the *event-state
+  * ``mean``      (P1) - masked mean over event states, parameter-free
+  * ``last``      (P2) - the last real event state, natural for causal models
+  * ``max``       (P2') - masked element-wise max over event states, parameter-free
+  * ``attention`` (P3) - learned additive attention over event states (the *event-state
                          aggregation probe*: is the target in the collection of event states,
                          even if not compressed into the predefined summary?)
 
 The backbone stays frozen; only the pooling (P3 has params; P0-P2' are parameter-free) and the
-linear classifier are trained — still a legitimate frozen-backbone probe. The parameter-free
+linear classifier are trained - still a legitimate frozen-backbone probe. The parameter-free
 poolings (mean/last/max) vs attention separate "using all event states" from "learning
 task-specific event importance".
 """
@@ -53,7 +53,7 @@ class CasePooling(nn.Module):
 
     def forward(self, out: EncoderOutput, padding_mask: torch.Tensor) -> torch.Tensor:
         if self.mode == "trace":
-            return out.trace_embedding  # (B, d) — the backbone's predefined case summary
+            return out.trace_embedding  # (B, d) - the backbone's predefined case summary
         h = out.event_states  # (B, L, d)
         valid = ~padding_mask  # (B, L), True at real events (padding is right-aligned)
         if self.mode == "mean":
@@ -96,7 +96,7 @@ class OutcomeHead(TaskHead):
         return F.cross_entropy(outputs, targets)
 
     def build_metrics(self, prefix: str = "") -> MetricCollection:
-        # ranking=True adds auroc/auprc — the honest readout for imbalanced case tasks.
+        # ranking=True adds auroc/auprc - the honest readout for imbalanced case tasks.
         return classification_metrics(self.n_classes, top_k=0, prefix=prefix, ranking=True)
 
     def update_metrics(

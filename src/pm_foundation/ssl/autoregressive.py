@@ -2,11 +2,11 @@
 
 A causal backbone predicts, at every event, the **next event's activity AND its
 time-delta** from left context only. This is leak-free by construction (causal mask)
-and teaches *both* control-flow and timing in one objective — the single-objective
+and teaches *both* control-flow and timing in one objective - the single-objective
 recipe aimed at a reusable multi-task backbone. Pair with ``TraceEncoder(causal=True)``.
 
 By default this is the plain **factorized** objective ``Loss = CE(next activity) +
-time_weight·MSE(next Δt)`` (see ``docs/architecture.pdf``) — activity and time predicted
+time_weight·MSE(next Δt)`` (see ``docs/architecture.pdf``) - activity and time predicted
 conditionally-independently. An **opt-in** ``objective="joint_nll"`` trains the marked
 temporal-point-process joint likelihood ``L = -log P(a, Δt | prefix) = CE(a) - log f(Δt |
 a)``: a proper log-normal Δt density *conditioned on the next activity* (teacher-forced), so
@@ -15,13 +15,13 @@ both terms are log-likelihoods and there is no arbitrary time weight (docs §16)
 An **opt-in** ``time_dist="lognormal"`` (within the factorized objective) replaces the
 Δt MSE (a point estimate) with the negative log-likelihood of a **log-normal** density
 (the time head predicts ``mu, log_sigma`` of a Gaussian over the standardized log-Δt), so
-the model captures timing *uncertainty* and can be sampled — MSE is the special case with
+the model captures timing *uncertainty* and can be sampled - MSE is the special case with
 a fixed variance. An **opt-in** ``predict_end=True`` adds one extra
 activity class, ``END`` (id ``n_activities``), and trains the last real event to predict it
-— teaching the generative model *when a trace stops*, which a downstream autoregressive
+- teaching the generative model *when a trace stops*, which a downstream autoregressive
 an autoregressive rollout needs to terminate. ``END`` is experimental and OFF by
 default: the main pretraining pipeline trains exactly the diagram above. When enabled,
-``END`` is an output class only — it never appears as an input event, so the input
+``END`` is an output class only - it never appears as an input event, so the input
 embedding and the feature spec are untouched.
 """
 
@@ -52,7 +52,7 @@ class JepaPredictor(nn.Module):
     """Dense multi-horizon latent predictor: EVERY position predicts 1..K steps ahead.
 
     Queries are **learned horizon embeddings only** (horizon ``j`` = "the event j steps
-    after this position") — deliberately NOT the true future Δt or any attribute of the
+    after this position") - deliberately NOT the true future Δt or any attribute of the
     target events, so no information about the answer reaches the student side. Input:
     the (projected) causal state at every position; output: one predicted proj_dim
     vector per (position, horizon) pair.
@@ -143,12 +143,12 @@ class AutoregressiveLitModule(L.LightningModule):
             self.activity_head = nn.Linear(d_model, n_activities + (1 if predict_end else 0))
         self.role_contrast_weight = float(role_contrast_weight)
         # Time head: "point" -> a single Δt estimate trained with MSE (default, the
-        # diagram). "huber" -> the same point estimate trained with Huber/smooth-L1 loss —
+        # diagram). "huber" -> the same point estimate trained with Huber/smooth-L1 loss -
         # quadratic near zero, linear in the tails, so heavy-tailed long-wait outliers can't
         # dominate the timing gradient (docs §17). "lognormal" -> (mu, log_sigma) of a
         # Gaussian over the standardized log-Δt trained with NLL (docs §12/§13). For the
         # joint objective the head is additionally conditioned on the (teacher-forced) next
-        # activity via an embedding — the P(Δt | a) factor of the joint likelihood.
+        # activity via an embedding - the P(Δt | a) factor of the joint likelihood.
         self.time_dist = time_dist
         self.huber_delta = huber_delta
         self.conditioned = objective == "joint_nll"
@@ -156,7 +156,7 @@ class AutoregressiveLitModule(L.LightningModule):
         cond_dim = time_cond_dim if self.conditioned else 0
         # Same architecture as the downstream NextTimeHead: a RegressionHead (linear when
         # time_head_hidden=0, else an MLP d->hidden->GELU->Dropout->out). So the pretext head
-        # has the same capacity the probe will use — and warm-start transfers the output layer.
+        # has the same capacity the probe will use - and warm-start transfers the output layer.
         time_out = 2 if self.time_dist == "lognormal" else 1
         self.time_head = RegressionHead(
             d_model + cond_dim, out_dim=time_out, hidden_dim=time_head_hidden or None
@@ -178,9 +178,9 @@ class AutoregressiveLitModule(L.LightningModule):
             if outcome_classes > 0
             else None
         )
-        # JEPA pretext (joint with AR): DENSE multi-horizon latent prediction — every causal
+        # JEPA pretext (joint with AR): DENSE multi-horizon latent prediction - every causal
         # position predicts the EMA teacher's representation 1..jepa_block steps ahead. The
-        # target is a latent, not a vocabulary token — vocabulary-agnostic on the prediction
+        # target is a latent, not a vocabulary token - vocabulary-agnostic on the prediction
         # side. The loss lives in a small PROJECTED space (student projector + EMA teacher
         # projector, BYOL-style) so the regression pressure cannot directly reshape the raw
         # backbone states the AR heads read. Leak-freedom: contexts are CAUSAL states
@@ -230,15 +230,15 @@ class AutoregressiveLitModule(L.LightningModule):
         """Dense multi-horizon JEPA loss (leak-free). ``None`` if no trace is long enough.
 
         EVERY real position ``i`` predicts the teacher's PROJECTED latent at ``i+j`` for all
-        horizons ``j = 1..jepa_block`` that stay inside the trace — the latent-space analog
+        horizons ``j = 1..jepa_block`` that stay inside the trace - the latent-space analog
         of the per-position AR heads (~L pairs per trace instead of one random cut, so short
         traces contribute proper signal and no single position soaks up the gradient).
-        Context = the STUDENT's causal state at ``i`` (attends only to events ``<= i`` — the
+        Context = the STUDENT's causal state at ``i`` (attends only to events ``<= i`` - the
         causal mask is the leakage guarantee); targets come from the EMA teacher + EMA
         projector under no_grad. Both sides are parameter-free layer-normed; loss is
         smooth-L1 over all valid (trace, position, horizon) triples.
 
-        Returns ``{"loss", "tgt_std", "pred_std", "n_pairs"}`` — the stds are per-dim std
+        Returns ``{"loss", "tgt_std", "pred_std", "n_pairs"}`` - the stds are per-dim std
         across pairs (collapse telemetry: healthy reps keep std well above 0).
         """
         assert self.jepa_predictor is not None and self.jepa_proj is not None
@@ -248,7 +248,7 @@ class AutoregressiveLitModule(L.LightningModule):
         if int(lengths.max()) < 2:
             return None
 
-        z = self.jepa_proj(states)  # (B, L, p) — student projection
+        z = self.jepa_proj(states)  # (B, L, p) - student projection
         pred = self.jepa_predictor(z)  # (B, L, K, p), horizon j at index j-1
 
         with torch.no_grad():  # stop-grad target side: EMA backbone -> EMA projector
@@ -293,7 +293,7 @@ class AutoregressiveLitModule(L.LightningModule):
         """Next-event targets: ``(next_activity, next_delta, valid_activity, valid_time)``.
 
         At position ``i`` the targets are event ``i+1``'s activity and delta; the last real
-        event (no successor) and pad positions are ignored — this is the default. When
+        event (no successor) and pad positions are ignored - this is the default. When
         ``end_id`` is given, the **last real event** of each trace instead predicts
         ``end_id`` (learning to stop), so ``valid_activity`` covers real successors **and**
         the END step while ``valid_time`` stays on real successors only (there is no Δt into
@@ -374,7 +374,7 @@ class AutoregressiveLitModule(L.LightningModule):
             rem_loss = F.l1_loss(rem_pred[rem_valid], batch["remaining_time"][rem_valid])
             total = total + self.remaining_time_weight * rem_loss
 
-        # Auxiliary outcome pretext (CE) on the labeler's stripped prefixes — a leak-free second
+        # Auxiliary outcome pretext (CE) on the labeler's stripped prefixes - a leak-free second
         # data path; the head reads the pooled trace embedding of those prefixes.
         out_loss = None
         if self.outcome_head is not None and outcome_batch is not None:
@@ -384,7 +384,7 @@ class AutoregressiveLitModule(L.LightningModule):
             total = total + self.outcome_weight * out_loss
 
         # JEPA pretext (joint with AR): dense multi-horizon latent prediction against the
-        # EMA teacher. Reuses the SAME student forward (causal states) — no extra student pass.
+        # EMA teacher. Reuses the SAME student forward (causal states) - no extra student pass.
         jepa = None
         if self.jepa_predictor is not None:
             jepa = self._jepa_loss(states, batch, padding_mask)
@@ -434,7 +434,7 @@ class AutoregressiveLitModule(L.LightningModule):
     def set_role_graph(self, graph: dict[str, torch.Tensor]) -> None:
         """Install the TRAINING corpus's role graph (student AND the JEPA teacher copy).
 
-        ``graph`` comes from ``fit_role_graph`` on the pretrain TRAIN split — never on
+        ``graph`` comes from ``fit_role_graph`` on the pretrain TRAIN split - never on
         traces that will be scored (see the leakage contract in data/roles.py).
         """
         role_encoder = getattr(self.backbone, "role_encoder", None)
@@ -457,7 +457,7 @@ class AutoregressiveLitModule(L.LightningModule):
     def configure_optimizers(self) -> Any:
         cfg = self.optimizer_cfg
         optimizer = torch.optim.AdamW(
-            # Exclude the frozen EMA teacher (requires_grad=False) — it is updated by
+            # Exclude the frozen EMA teacher (requires_grad=False) - it is updated by
             # momentum in on_train_batch_end, never by the optimizer.
             [p for p in self.parameters() if p.requires_grad],
             lr=float(cfg.get("lr", 5e-4)),

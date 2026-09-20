@@ -2,11 +2,11 @@
 
 The v2 protocol gives the regression probes a hidden layer (probe.head_hidden=128, i.e.
 Linear(256->128)->GELU->Dropout->Linear(128->1), 33,025 params). This grid re-runs ONLY the three
-regression tasks with probe.head_hidden=0, a single Linear(256->1) (257 params) — a true linear
+regression tasks with probe.head_hidden=0, a single Linear(256->1) (257 params) - a true linear
 probe, matching the four activity tasks. head_hidden is part of the grid hash, so these runs get
 their own checkpoints and cannot collide with the existing ones.
 
-Arms: pfm (frozen), random_role (the MAE normaliser — must use the SAME head to stay comparable),
+Arms: pfm (frozen), random_role (the MAE normaliser - must use the SAME head to stay comparable),
 pfm_ft. Everything else is the v2 protocol: budget corpus, max_trace_len 64, 8 budgets, 3 seeds,
 probes <=100 epochs with patience 10 on the validation partition.
 

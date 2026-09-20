@@ -10,7 +10,7 @@
 #SBATCH --gres=gpu:nvidia_h200_nvl_1g.18gb:1
 #SBATCH --cpus-per-task=8                ##EDIT## eval is light (num_workers=0); 4 cores is plenty
 #SBATCH --mem=64G
-#SBATCH --time=12:00:00                 ##EDIT## walltime — full event_tasks grid is long; runs resume from checkpoint on re-submit
+#SBATCH --time=12:00:00                 ##EDIT## walltime - full event_tasks grid is long; runs resume from checkpoint on re-submit
 #SBATCH --partition=main                ##EDIT## GPU partition
 #SBATCH --account=ncps-team             ##EDIT## allocation/account (sacctmgr show assoc user=$USER)
 #SBATCH --output=logs/%x-%j.out

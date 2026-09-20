@@ -1,6 +1,6 @@
-# Helpdesk (Italian software-company ticket process) — small IT service-management log, 9 activities
+# Helpdesk (Italian software-company ticket process) - small IT service-management log, 9 activities
 # (numeric ActivityIDs, so no semantic outcome labeler; use it for next_activity / time transfer).
-# A genuinely different domain from loans, travel, and hospital — good HELD-OUT / pretraining domain.
+# A genuinely different domain from loans, travel, and hospital - good HELD-OUT / pretraining domain.
 # The header was canonicalized to case_id/activity/timestamp so a bare `format: csv` config just works.
 vocab_logs:
   - path: ${paths.data_dir}/helpdesk.csv

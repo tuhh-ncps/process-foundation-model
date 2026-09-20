@@ -4,7 +4,7 @@
 # project's .venv from pyproject.toml + uv.lock, then verifies torch/CUDA and the package.
 #
 # Run this ON the cluster, from the repo root (`bash scripts/setup_native.sh` or `make setup_native`).
-# Idempotent — re-run after dependency changes. The .venv is per-machine and gitignored, so each
+# Idempotent - re-run after dependency changes. The .venv is per-machine and gitignored, so each
 # cluster builds its own; it is never rsynced.
 set -euo pipefail
 cd "$(cd "$(dirname "$0")/.." && pwd)"   # repo root
@@ -25,4 +25,4 @@ import torch, pm_foundation  # noqa: F401
 print(f"torch {torch.__version__}  cuda_avail={torch.cuda.is_available()}  ndev={torch.cuda.device_count()}")
 print("pm_foundation import OK")
 PY
-echo "[setup] done — .venv ready. Submit jobs with:  make submit_oland EXPERIMENT=... DATASET=..."
+echo "[setup] done - .venv ready. Submit jobs with:  make submit_oland EXPERIMENT=... DATASET=..."

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Native (containerless) AR pretraining on oland (Uni Kiel) — single fat node, Slurm, uv env.
+# Native (containerless) AR pretraining on oland (Uni Kiel) - single fat node, Slurm, uv env.
 # oland has NO container runtime, so we run in the project's uv venv directly (built once with
 # `uv sync --extra tracking`). GPUs are requested via Slurm gres and exposed as CUDA devices.
 #   make submit_oland EXPERIMENT=role DATASET=mimic_transfers \
@@ -36,7 +36,7 @@ EXTRA="${EXTRA:-}"
 ONLINE=""
 [ "$LOGGER" = "wandb" ] && ONLINE="logger.mode=online"
 # DataLoader workers. Default 0 (in-process): the pretrain dataset is a large IN-MEMORY list of
-# pydantic traces, so num_workers>0 forks a copy per worker and stalls startup — verified to hang
+# pydantic traces, so num_workers>0 forks a copy per worker and stalls startup - verified to hang
 # on the 382k-trace MIMIC set. Only set WORKERS>0 for a lighter/streamed dataset.
 WORKERS="${WORKERS:-0}"
 

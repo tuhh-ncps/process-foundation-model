@@ -12,7 +12,7 @@ class DinoProjectionHead(nn.Module):
 
     Architecture (per DINO): an MLP (GELU) down to a bottleneck, an L2-normalized
     bottleneck, then a linear layer to ``out_dim`` prototypes whose weight vectors
-    are unit-normalized — equivalent to a weight-normalized layer with the
+    are unit-normalized - equivalent to a weight-normalized layer with the
     magnitude fixed to 1, which stabilizes training and avoids a deprecated API.
     """
 

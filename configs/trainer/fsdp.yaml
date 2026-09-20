@@ -1,5 +1,5 @@
 # For models too big for one GPU: shards params/grads/optimizer. Pair with a larger model
-# and activation checkpointing. (Overkill for the current 4.8M backbone — for future scale-up.)
+# and activation checkpointing. (Overkill for the current 4.8M backbone - for future scale-up.)
 max_epochs: 1
 accelerator: gpu
 precision: bf16-mixed

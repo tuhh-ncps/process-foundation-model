@@ -1,5 +1,5 @@
 # @package hydra.launcher
-# Submits the SAME run to Slurm — no hand-written sbatch. Needs -m. Override per cluster:
+# Submits the SAME run to Slurm - no hand-written sbatch. Needs -m. Override per cluster:
 #   hydra.launcher.partition=gpu hydra.launcher.nodes=2 hydra.launcher.gpus_per_node=1
 _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
 submitit_folder: ${paths.output_dir}/submitit/%j

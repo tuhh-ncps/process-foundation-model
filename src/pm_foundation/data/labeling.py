@@ -21,7 +21,7 @@ class OutcomeLabeler:
     Args:
         terminal_to_class: maps a terminal activity to its class name. Checked in
             insertion order, so the first matching terminal wins (priority).
-        deciding_activities: activities removed from the input — the truncation cut
+        deciding_activities: activities removed from the input - the truncation cut
             is at the first event whose activity is in this set.
         min_prefix_len: traces whose surviving prefix is shorter than this are dropped.
     """
@@ -147,7 +147,7 @@ class WindowedTraceLabeler:
                 continue
             t0 = care[0].timestamp
             if _mimic_stay_hours(trace, t0) < self.window_hours:
-                continue  # insufficient observation — stay ends before the prediction point
+                continue  # insufficient observation - stay ends before the prediction point
             obs = [e for e in care if _hours_since(e, t0) <= self.window_hours]
             if len(obs) < self.min_events:
                 continue
@@ -164,9 +164,9 @@ class WindowedICULabeler:
 
     At ``obs_hours`` after admission, given the care-unit trajectory so far, predict whether the
     patient enters an ICU/CCU unit within the next ``horizon_hours`` (or EVER, if ``horizon_hours``
-    is ``None`` — a less time-constrained, better-balanced target). BOTH classes share the same
+    is ``None`` - a less time-constrained, better-balanced target). BOTH classes share the same
     prediction time (unlike a "cut before first ICU" scheme, which hands positives a systematically
-    shorter prefix — a giveaway). Excluded: patients already in ICU by ``obs_hours`` (not a future
+    shorter prefix - a giveaway). Excluded: patients already in ICU by ``obs_hours`` (not a future
     prediction) and stays that end before ``obs_hours`` (unobservable). Duck-types
     :class:`OutcomeLabeler`.
     """
@@ -197,7 +197,7 @@ class WindowedICULabeler:
                 continue  # can't observe up to the prediction time
             icu_hours = [_hours_since(e, t0) for e in care if _is_mimic_icu(e.activity)]
             if any(h <= self.obs_hours for h in icu_hours):
-                continue  # already in ICU by the prediction time — not a future prediction
+                continue  # already in ICU by the prediction time - not a future prediction
             obs = [e for e in care if _hours_since(e, t0) <= self.obs_hours]
             if len(obs) < self.min_events:
                 continue
@@ -244,12 +244,12 @@ def bpi17_application_outcome() -> OutcomeLabeler:
     """BPI'17 application outcome: approved / denied / cancelled.
 
     BPI'17 is the successor loan-application log to BPI'12, with different activity names.
-    The outcome is the final application state — ``A_Pending`` (offer accepted, loan
+    The outcome is the final application state - ``A_Pending`` (offer accepted, loan
     granted), ``A_Denied``, or ``A_Cancelled``. NOTE ``A_Accepted`` is an *intermediate*
     "accepted for processing" state present in nearly every trace, NOT the outcome.
 
     The input prefix is cut before the first application terminal *or* offer decision
-    (offer-accept ⟺ ``A_Pending``), so the deciding events never leak in — the direct
+    (offer-accept ⟺ ``A_Pending``), so the deciding events never leak in - the direct
     mirror of :func:`bpi12_application_outcome`.
     """
     return OutcomeLabeler(
@@ -276,7 +276,7 @@ def bpi20id_declaration_outcome() -> OutcomeLabeler:
     supervisor/director approval) or **rejected** by an approver. Approved terminals are checked
     first, so a declaration rejected once then resubmitted-and-approved counts as approved (its
     *final* state). The input prefix is cut before the first declaration approval/rejection/payment
-    decision — the permit sub-flow and the trip stay in the input, the deciding events never leak in.
+    decision - the permit sub-flow and the trip stay in the input, the deciding events never leak in.
     """
     return OutcomeLabeler(
         terminal_to_class={
@@ -382,7 +382,7 @@ def _mimic_los_label(trace: Trace) -> str | None:
 
 
 def _mimic_los_long_label(trace: Trace) -> str | None:
-    """Prolonged-stay binary: long (total LOS >= 7d) vs short. ~30% positive — well balanced."""
+    """Prolonged-stay binary: long (total LOS >= 7d) vs short. ~30% positive - well balanced."""
     care = _mimic_care_events(trace)
     if not care:
         return None
@@ -391,7 +391,7 @@ def _mimic_los_long_label(trace: Trace) -> str | None:
 
 
 # In-hospital mortality predicted from a fixed observation window (first 24h / 48h). Standardized
-# prediction point — no "just before death/discharge" leak. Cohort = admissions surviving >= window.
+# prediction point - no "just before death/discharge" leak. Cohort = admissions surviving >= window.
 def mimic_mortality_24h() -> WindowedTraceLabeler:
     return WindowedTraceLabeler(24.0, _mimic_mortality_label, ["survived", "expired"])
 
@@ -400,7 +400,7 @@ def mimic_mortality_48h() -> WindowedTraceLabeler:
     return WindowedTraceLabeler(48.0, _mimic_mortality_label, ["survived", "expired"])
 
 
-# Total length-of-stay bucket predicted from a fixed window — the window's elapsed duration is
+# Total length-of-stay bucket predicted from a fixed window - the window's elapsed duration is
 # bounded (24h/48h) regardless of the true LOS, so it cannot reveal the bucket (the old leak).
 def mimic_los_24h() -> WindowedTraceLabeler:
     return WindowedTraceLabeler(24.0, _mimic_los_label, ["short", "medium", "long"])
@@ -410,7 +410,7 @@ def mimic_los_48h() -> WindowedTraceLabeler:
     return WindowedTraceLabeler(48.0, _mimic_los_label, ["short", "medium", "long"])
 
 
-# Prolonged-stay (LOS >= 7d) binary from a fixed window — a well-balanced (~30%) alternative to
+# Prolonged-stay (LOS >= 7d) binary from a fixed window - a well-balanced (~30%) alternative to
 # the 3-class LOS bucket.
 def mimic_los_long_24h() -> WindowedTraceLabeler:
     return WindowedTraceLabeler(24.0, _mimic_los_long_label, ["short", "long"])
@@ -430,7 +430,7 @@ def mimic_icu_48h() -> WindowedICULabeler:
     return WindowedICULabeler(obs_hours=48.0, horizon_hours=24.0)
 
 
-# ICU EVER (any time after the observation window) — less time-constrained, ~3x more positives
+# ICU EVER (any time after the observation window) - less time-constrained, ~3x more positives
 # than icu-next-24h, so it clears the macro-F1 floor more easily while carrying the same signal.
 def mimic_icu_ever_24h() -> WindowedICULabeler:
     return WindowedICULabeler(obs_hours=24.0, horizon_hours=None)

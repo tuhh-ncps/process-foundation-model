@@ -1,6 +1,6 @@
 """Batch samplers for variable-length traces.
 
-Padding a batch to its longest member wastes compute — badly when a small tail of long
+Padding a batch to its longest member wastes compute - badly when a small tail of long
 traces drags nearly every random batch up to the max (see docs §18). ``LengthBucketedSampler``
 groups similar-length traces into the same batch (each batch pads only to its own small max)
 while a pooled-shuffle scheme keeps epoch-to-epoch randomness.
@@ -66,7 +66,7 @@ class LengthBucketedSampler(Sampler[list[int]]):
 
     def _shuffle_generator(self, salt: int) -> torch.Generator | None:
         # Under DDP every rank must shuffle identically, so derive from seed+epoch. Single
-        # process keeps the caller's generator (or the global RNG) — unchanged local behaviour.
+        # process keeps the caller's generator (or the global RNG) - unchanged local behaviour.
         if self.num_replicas > 1:
             return torch.Generator().manual_seed(self.seed + self.epoch + salt)
         return self.generator

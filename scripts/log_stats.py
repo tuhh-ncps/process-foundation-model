@@ -6,7 +6,7 @@ trace length, #Variants) as a CORRECTNESS CHECK, and adds the two new temporal c
   * med dur  = median over cases of (t_last - t_first), in days
 Events are sorted by timestamp within each case first, so gaps are never negative.
 Statistics are measured on the RAW logs (activity = concept:name), before prefix extraction or
-trace-length filtering — the same convention as the existing table.
+trace-length filtering - the same convention as the existing table.
 Streaming XES parse (iterparse, trace subtree cleared after each case) so the 1.9 GB BPI18 log
 is read with flat memory. Usage: python scripts/log_stats.py [name ...]   (run from the repository root)
 """

@@ -1,7 +1,7 @@
-# PFM — A Process Foundation Model with Reusable Process Representations
+# PFM - A Process Foundation Model with Reusable Process Representations
 
 Reference implementation for the paper *"PFM: A Process Foundation Model with Reusable Process
-Representations for Predictive Process Monitoring"* (Tran, Wölker, Landsiedel — TUHH).
+Representations for Predictive Process Monitoring"* (Tran, Wölker, Landsiedel - TUHH).
 
 | | |
 |---|---|
@@ -17,7 +17,7 @@ Representations for Predictive Process Monitoring"* (Tran, Wölker, Landsiedel �
 
 A predictive process monitoring (PPM) model is normally trained for **one event log and one
 prediction task**. Change the activity vocabulary, the process, or the target, and you retrain.
-That is because most models embed activities by their **identity** — a lookup table indexed by
+That is because most models embed activities by their **identity** - a lookup table indexed by
 activity ID. Those IDs mean nothing in a log the model has never seen.
 
 PFM asks what happens if the reusable artifact is the **event-state representation itself**, shared
@@ -42,9 +42,9 @@ Three phases, and the first two happen exactly once:
 
 | Phase | What it learns | Frozen afterwards? |
 |---|---|---|
-| **1a — Role embedding** | maps a fingerprint + DFG context to a vocabulary-free activity vector | yes |
-| **1b — Backbone** | causal transformer over role embeddings and time, trained on six logs | yes |
-| **2 — Adaptation** | one lightweight head per task, on the target log | the head is all that trains |
+| **1a - Role embedding** | maps a fingerprint + DFG context to a vocabulary-free activity vector | yes |
+| **1b - Backbone** | causal transformer over role embeddings and time, trained on six logs | yes |
+| **2 - Adaptation** | one lightweight head per task, on the target log | the head is all that trains |
 
 Because the vocabulary never enters the model, the 683 activity names in the pretraining corpus
 **do not overlap at all** with the five held-out evaluation logs. There is nothing to look up.
@@ -53,7 +53,7 @@ Because the vocabulary never enters the model, the 683 activity names in the pre
 
 ## How it works
 
-### Phase 1a — role embeddings
+### Phase 1a - role embeddings
 
 ![Role encoder architecture](assets/role_encoder_arch.png)
 
@@ -88,7 +88,7 @@ correlation structure and a per-feature non-redundancy score are in the repo:
 The average feature carries about 0.57 of information the other fourteen cannot reconstruct.
 Temporal descriptors are the least substitutable; PageRank is the most redundant, at 0.27.
 
-### Phase 1b — backbone pretraining
+### Phase 1b - backbone pretraining
 
 ![Backbone architecture](assets/backbone_full.png)
 
@@ -101,13 +101,13 @@ logs with four objectives: next activity, next event time, remaining time, and a
 > application-outcome head at weight 0.3. A control run with that term removed changes results only
 > within pretraining-seed noise. See [REPRODUCE.md](REPRODUCE.md#known-deviations).
 
-### Phase 2 — adaptation
+### Phase 2 - adaptation
 
 The role encoder and backbone stay frozen. For a new log you need only its **activity set, DFG and
 fingerprints**, computed from the labelled cases you have. One head per task reads the causal event
 state `h_i`:
 
-- four activity tasks use a **single linear layer** — so the metric measures what is *linearly
+- four activity tasks use a **single linear layer** - so the metric measures what is *linearly
   decodable* from the frozen state;
 - three regression tasks use a small `Linear–GELU–Linear` MLP with hidden dimension 128.
 
@@ -132,7 +132,7 @@ independently that they really are early-in-case events.
 ## Results
 
 Five held-out logs, seven tasks, three seeds. `Frozen Random` is a randomly initialised, frozen
-representation — the honest floor. `PFM` freezes everything and trains only heads. `PFM-FT`
+representation - the honest floor. `PFM` freezes everything and trains only heads. `PFM-FT`
 fine-tunes end to end and is the upper reference, not a competitor.
 
 Means over the five held-out logs at full supervision, recomputed from [`results/v2_all.csv`](results/v2_all.csv):
@@ -159,7 +159,7 @@ tasks. The budget axis is logarithmic; `all` is the full training partition, whi
 size per log, so that last hop is drawn as a dashed connector rather than a normal step.
 
 The time panels start flat for every arm until roughly 300 labels. That is a property of the data
-and the budget, not of head capacity — we checked by rerunning all three regression tasks with a
+and the budget, not of head capacity - we checked by rerunning all three regression tasks with a
 **linear** head instead of the MLP, on all five logs, and the floor does not move
 ([`results/linhead_all.csv`](results/linhead_all.csv)).
 
@@ -239,6 +239,6 @@ Full instructions, including how to get each log and how to reproduce every tabl
 }
 ```
 
-If you use the event logs, **cite the log authors too** — see
+If you use the event logs, **cite the log authors too** - see
 [REFERENCES.md](REFERENCES.md#event-logs). The code is licensed under [LICENSE](LICENSE); that
 covers the code only, not the datasets, which carry their own terms.

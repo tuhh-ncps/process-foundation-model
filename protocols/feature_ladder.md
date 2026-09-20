@@ -16,7 +16,7 @@ J In-gap median · K In-gap spread · L Out-gap median · M Out-gap spread · N 
 
 ---
 
-## Phase A — frozen feature order (pretraining data only)
+## Phase A - frozen feature order (pretraining data only)
 
 **A1. Fingerprints.** Six pretraining logs only: BPI12, BPI19, BPI18, Road Traffic, BPI11, Hospital
 Billing. For each log, use exactly the Phase-1b training traces: the log read as in its
@@ -72,12 +72,12 @@ primary-order step where Case-start/Case-end probability enters; script git hash
 **A7. Freeze gate.** `scripts/feature_ladder.py` and `results/feature_ladder.json` are committed before
 any GPU job. Nothing downstream may reorder, drop or tune descriptors.
 
-## Phase A′ — zero-masking (fixed model size)
+## Phase A′ - zero-masking (fixed model size)
 
 **A′1.** Every k uses the full `Linear(15, 64)` role-encoder input. Selected descriptors keep their
 original values; unselected descriptors are set to 0.
 
-**A′2.** The mask is applied inside the role embedder, before feature dropout — never on the graph
+**A′2.** The mask is applied inside the role embedder, before feature dropout - never on the graph
 fingerprints, which also supply the Phase-1a start/end role labels.
 
 **A′3.** Config `model.role_feature_mask` (kept code indices; default all 15), rebuilt from the config
@@ -90,7 +90,7 @@ columns leaves the embedding unchanged.
 **A′5.** k = 15 is GIN-15 (backbone `backbone-20260906-153102-multi-none-v2-gin15-17fc3c`, reused);
 k = 0 is trained new. Earlier shrunk-input ablations (GIN-11, GIN-0) are not directly comparable.
 
-## Phase B — pretraining (r31)
+## Phase B - pretraining (r31)
 
 **B1.** M_k = first k code indices of the frozen order, k = 0…14.
 
@@ -105,7 +105,7 @@ validation, seed 0).
 **B4. Gate.** All manifests completed with checkpoints; each manifest records the expected mask; losses
 finite and comparable to GIN-15.
 
-## Phase C — evaluation (r32)
+## Phase C - evaluation (r32)
 
 **C1.** Extend the cached-feature evaluator with `--backbone`, `--eval-seed`, `--tasks`; the mask is read
 from each backbone manifest.
@@ -130,7 +130,7 @@ head only (AdamW 1e-3, ≤100 epochs, patience 10, best-validation restore).
 **C4.** Frozen Random reference: the existing full-budget `random_role` next-activity result, drawn as a
 horizontal line and never called k = 0.
 
-## Phase D — aggregation and reporting
+## Phase D - aggregation and reporting
 
 **D1.** Per (k, log): ā_{k,ℓ} = mean over the three eval seeds; s²_{k,ℓ} = their variance.
 
@@ -149,8 +149,8 @@ for other feature budgets.
 **D4. Primary summary (fixed before observing results).** μ_15 is the ladder's own k = 15 point (same
 pretraining seed, pipeline and evaluation seeds as every k).
 k_near = min{ k : μ_j ≥ μ_15 − σ_15 for all j ≥ k }.
-k_near is descriptive — the smallest budget from which all larger budgets lie in the near-full-performance
-region — not a statistical equivalence or saturation test. μ_15 is a single draw (the lowest of the three
+k_near is descriptive - the smallest budget from which all larger budgets lie in the near-full-performance
+region - not a statistical equivalence or saturation test. μ_15 is a single draw (the lowest of the three
 existing GIN-15 seeds), so the threshold is slightly lenient; σ_15 is estimated from three runs and serves
 only as a scale. Pre-registered sensitivity: k_near with the three-seed GIN-15 mean (0.7303) as μ_15.
 No other thresholds. The overall trend is described separately; differences between adjacent budgets are
@@ -170,7 +170,7 @@ t-interval, five per-log Δ, n logs, n eval seeds, k_near primary and sensitivit
 μ_15 − σ_15; Frozen Random line; markers at k_near and where Case-start/Case-end probability enters.
 Panel (b): Δ_k with paired 95% t-intervals, five per-log points, zero line. Secondary: J(S)/15.
 
-## Phase E — documentation
+## Phase E - documentation
 
 `hpc/README.md` rows r31/r32; `REPRODUCE.md` commands per phase. Limitations stated: single pretraining
 seed (exploratory, no propagated pretraining uncertainty); greedy ordering; Phase-1a labels derived from
@@ -180,7 +180,7 @@ Case-start/Case-end probability; next activity only; D5 intervals conditional on
 
 ## Amendments
 
-### A1 — 2026-09-15 — C2.2 waived; cached evaluation retained
+### A1 - 2026-09-15 - C2.2 waived; cached evaluation retained
 
 Decision: T. Tran, after the C2 gate returned FAILED (commit d33be75, job 4546).
 
@@ -202,7 +202,7 @@ Decision: T. Tran, after the C2 gate returned FAILED (commit d33be75, job 4546).
 - Implementation: `protocols/feature_ladder_waivers.json` lists C2.2 under A1. The C2 verdict is
   `PASSED_WITH_WAIVER` only if every non-waived check passes; any other failure still blocks C3.
 
-### A2 — 2026-09-16 — exploratory extension to six further tasks
+### A2 - 2026-09-16 - exploratory extension to six further tasks
 
 Decision: T. Tran, while C3 (next activity) was finishing and before its results were aggregated.
 

@@ -6,7 +6,7 @@ states plus a pooled trace embedding. This is the architectural core of the back
 Two modes:
 - **bidirectional** (default): each event attends to the whole trace; the pooled
   trace embedding is the CLS state. Ideal for understanding a finished trace, but
-  the per-event states "see the future" — so next-activity must be evaluated on
+  the per-event states "see the future" - so next-activity must be evaluated on
   prefixes to avoid leakage.
 - **causal** (``causal=True``): a triangular mask lets each event attend only to
   itself and earlier events, so per-event states are leak-free by construction
@@ -102,7 +102,7 @@ class _RoPEEncoder(nn.Module):
 
 class TemporalAttentionBias(nn.Module):
     """V5: learnable per-head additive attention bias over the bucketed log real-time gap
-    ``log1p(|t_i - t_j|)`` — the T5 relative-position-bias pattern, but on **real time** instead
+    ``log1p(|t_i - t_j|)`` - the T5 relative-position-bias pattern, but on **real time** instead
     of index position (RoPE already covers relative index). Bias table inits to zero, so at init
     it's a no-op (== plain RoPE) and only departs if temporal distance helps.
 
@@ -140,8 +140,8 @@ class TemporalAttentionBias(nn.Module):
 class EncoderOutput:
     """Backbone outputs shared by SSL and all downstream heads."""
 
-    trace_embedding: torch.Tensor  # (B, d_model) — pooled trace summary
-    event_states: torch.Tensor  # (B, L, d_model) — per-event states (CLS excluded)
+    trace_embedding: torch.Tensor  # (B, d_model) - pooled trace summary
+    event_states: torch.Tensor  # (B, L, d_model) - per-event states (CLS excluded)
 
 
 class TraceEncoder(nn.Module):
@@ -177,7 +177,7 @@ class TraceEncoder(nn.Module):
                 n_heads, temporal_bias_buckets, temporal_bias_max_log, gated=temporal_bias_gated
             )
         if position == "rope":
-            # No position table, no max length — handles arbitrary sequence lengths.
+            # No position table, no max length - handles arbitrary sequence lengths.
             self.encoder: nn.Module = _RoPEEncoder(d_model, n_layers, n_heads, ffn_dim, dropout)
         else:
             layer = nn.TransformerEncoderLayer(
@@ -203,7 +203,7 @@ class TraceEncoder(nn.Module):
         """Boolean attend-mask ``(B, 1, L, L)`` (True = attend) for the RoPE encoder.
 
         Masks padded keys and, when causal, future keys. CLS (index 0) is never padded, so
-        every query row keeps at least one valid key — no fully-masked rows / NaNs.
+        every query row keeps at least one valid key - no fully-masked rows / NaNs.
         """
         bsz = 1 if padding_mask is None else padding_mask.shape[0]
         if padding_mask is None:

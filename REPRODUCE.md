@@ -93,7 +93,7 @@ python scripts/build_mimic_log.py \
 ```
 
 Each admission becomes a trace of care-unit transfers with an outcome terminal at discharge; the
-paper uses a fixed subset of 5,000 admissions. **Without MIMIC everything else still runs** — you
+paper uses a fixed subset of 5,000 admissions. **Without MIMIC everything else still runs** - you
 reproduce four of the five held-out logs, and `check_data.py` exits 0 to say so.
 
 ### Verify before spending GPU time
@@ -106,7 +106,7 @@ git diff results/log_stats.csv           # no diff means they are equivalent to 
 `results/log_stats.csv` is committed, so this catches a truncated or wrong-variant download in
 minutes instead of after a training run.
 
-## 3. Phase 1a — role encoder
+## 3. Phase 1a - role encoder
 
 Trains the vocabulary-free activity encoder on its own, selecting the checkpoint on **held-out** logs
 (Sepsis and Receipt) that are never trained on.
@@ -120,7 +120,7 @@ python train.py task=role_pretrain role=default trainer=local
 
 The paper's encoder is `role-encoder-20260906-151732-role-frozen-bd3b8c`.
 
-## 4. Phase 1b — backbone
+## 4. Phase 1b - backbone
 
 Pretrains the causal backbone on the six-log corpus, on top of a frozen Phase 1a encoder.
 
@@ -247,7 +247,7 @@ Output lands next to the scripts and is gitignored; the committed copies are in 
 This is the cheapest way to check our numbers: regenerate a figure and compare it against the one in
 `assets/`. Those committed copies were produced by these exact scripts in the environment `uv.lock`
 pins, so inside that environment they come out byte-identical. **Across matplotlib versions they will
-not** — canvas dimensions shift by a few pixels — so compare what the figure *says*, not its
+not** - canvas dimensions shift by a few pixels - so compare what the figure *says*, not its
 checksum. The numbers themselves come from `results/` and are version-independent.
 
 Three of the eight images in `assets/` are regenerated this way (`frozen_agg_all`, `sota_wall`,

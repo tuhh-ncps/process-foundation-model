@@ -1,16 +1,16 @@
 """Vocabulary-free activity fingerprints + directly-follows graph ("role" inputs).
 
 ``fit_role_graph`` turns a corpus of traces into per-activity **behavior fingerprints**
-(blocked: graph / time / behavior) plus the weighted DFG adjacency — the inputs of the
+(blocked: graph / time / behavior) plus the weighted DFG adjacency - the inputs of the
 :class:`~pm_foundation.models.role_encoder.ActivityEncoder`. Nothing here touches
 activity *identity*: every feature is a corpus-level statistic, so two datasets with
 disjoint vocabularies land in the same, comparable feature space.
 
 LEAKAGE CONTRACT (mirrors ``fit_feature_spec``'s train-only convention):
-    * Fingerprints are **corpus statistics over completed historical traces** — they are
+    * Fingerprints are **corpus statistics over completed historical traces** - they are
       computed ONCE from a reference corpus and never from the case being predicted.
     * The reference corpus must be a TRAINING split: at pretraining time the pretrain
-      train split; at evaluation time the EVAL dataset's train split — NEVER traces that
+      train split; at evaluation time the EVAL dataset's train split - NEVER traces that
       will be scored. Callers pass the trace list explicitly; there is no "whole log"
       convenience path.
 """
@@ -28,7 +28,7 @@ from pm_foundation.data.vocabulary import RESERVED_TOKENS, Vocabulary
 
 # Fingerprint layout. 20 features are computed internally; 5 are PRUNED as dead weight for role
 # (permutation importance found in_degree, out_degree, in_cycle, and the two p90 gap-tails contribute
-# ~0 — a 5-seed A/B confirmed role-quality holds without them). The returned feats keeps 15:
+# ~0 - a 5-seed A/B confirmed role-quality holds without them). The returned feats keeps 15:
 #   graph    (3): pagerank, betweenness, self_loop_p          [in_degree, out_degree, in_cycle dropped]
 #   time     (4): in_gap median/std, out_gap median/std       [both p90 tails dropped]
 #   behavior (8): p_start, p_terminal, support, pred_entropy, succ_entropy, mean_pos, std_pos, rework_p
@@ -37,7 +37,7 @@ from pm_foundation.data.vocabulary import RESERVED_TOKENS, Vocabulary
 _N_RAW_FEATURES = 20
 _KEEP_COLS = [2, 3, 5, 6, 7, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19]  # drops raw cols 0,1,4,8,11
 _KEEP_IDX = torch.tensor(_KEEP_COLS)
-N_ROLE_FEATURES = len(_KEEP_COLS)  # 15 — the encoder's input width
+N_ROLE_FEATURES = len(_KEEP_COLS)  # 15 - the encoder's input width
 P_START_COL = _KEEP_COLS.index(12)  # p_start in the PRUNED feats (7)
 P_TERMINAL_COL = _KEEP_COLS.index(13)  # p_terminal in the PRUNED feats (8)
 # Name channel: hashed character trigrams (stable crc32, NOT python hash), padded/truncated.
@@ -65,7 +65,7 @@ def _weak_components(succ: list[list[int]], n: int) -> list[list[int]]:
     """Weakly-connected components (edges treated as undirected) of the real subgraph.
 
     Multi-dataset corpora have disjoint activity vocabularies, so each source log forms its own
-    component — which is what makes per-component rank normalization equivalent to fitting that
+    component - which is what makes per-component rank normalization equivalent to fitting that
     log on its own (see the normalization note in :func:`fit_role_graph`).
     """
     adj: list[list[int]] = [[] for _ in range(n)]
@@ -187,7 +187,7 @@ def fit_role_graph(traces: list[Trace], vocab: Vocabulary) -> dict[str, torch.Te
         ``adj_in``    (V, V)  in-neighbor transition matrix, row-normalized
         ``adj_out``   (V, V)  out-neighbor transition matrix, row-normalized
         ``name_ids``  (V, NAME_TRIGRAM_SLOTS)  hashed char-trigram ids (0-padded)
-        ``real_mask`` (V,)  bool — rows that are real activities seen in the corpus
+        ``real_mask`` (V,)  bool - rows that are real activities seen in the corpus
 
     See the module docstring for the leakage contract: ``traces`` must be a training
     split, never traces that will later be predicted/scored.
@@ -289,7 +289,7 @@ def fit_role_graph(traces: list[Trace], vocab: Vocabulary) -> dict[str, torch.Te
     # --- rank-normalize PER WEAKLY-CONNECTED COMPONENT, scatter into vocab rows ----
     # A rank is only meaningful relative to the population it was computed over. Normalizing
     # GLOBALLY broke multi-dataset training: the corpus graph is fitted over the union of all
-    # source logs, but at eval the graph is fitted on the target log ALONE — so the same activity
+    # source logs, but at eval the graph is fitted on the target log ALONE - so the same activity
     # received a different fingerprint at train vs eval time (measured: mean |Δ| 0.13-0.22, max
     # 0.86 on a [0,1] scale, worst on the absolute-timescale gap features, because the union's
     # ranks were dominated by whichever source contributed the most activities). The GIN was then
@@ -300,7 +300,7 @@ def fit_role_graph(traces: list[Trace], vocab: Vocabulary) -> dict[str, torch.Te
     for comp in _weak_components(succ, n_real):
         idx = torch.tensor(comp, dtype=torch.long)
         for col in range(_N_RAW_FEATURES):
-            if col == 4:  # in_cycle is binary — keep raw (dropped from output anyway)
+            if col == 4:  # in_cycle is binary - keep raw (dropped from output anyway)
                 continue
             # a lone activity has no population to rank against -> neutral 0.5, not an extreme
             raw[idx, col] = (
@@ -329,7 +329,7 @@ def apply_aggregator(graph: dict[str, torch.Tensor], aggregator: str = "mean") -
     ``mean`` (default) keeps ``fit_role_graph``'s ROW-NORMALIZED transition matrices, so ``adj @ h``
     is a probability-weighted mean (scale-invariant across logs). ``sum`` binarizes the adjacency so
     ``adj @ h`` is a true-GIN neighbour SUM (WL-expressive, Xu et al. 2019). The encoder learns to
-    whichever scale it trains on, so the SAME aggregator must be used at pretrain and inference —
+    whichever scale it trains on, so the SAME aggregator must be used at pretrain and inference -
     keep it a model-config property (persisted in the manifest) so eval reads it back automatically.
     """
     if aggregator == "mean":

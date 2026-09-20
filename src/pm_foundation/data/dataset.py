@@ -78,8 +78,8 @@ class SupervisedTraceDataset(TraceDataset):
     dataset's vocab for cross-dataset probing so the target is the real next activity
     (not ``UNK``) even when the backbone was trained on a different activity set.
 
-    ``role_vocab`` (optional) adds ``role_ids`` — the events encoded with the CURRENT
-    dataset's catalogue — so a role-channel backbone can look up e(a_i) in the eval
+    ``role_vocab`` (optional) adds ``role_ids`` - the events encoded with the CURRENT
+    dataset's catalogue - so a role-channel backbone can look up e(a_i) in the eval
     catalogue's table even when the backbone's own vocab would UNK the activity.
     """
 

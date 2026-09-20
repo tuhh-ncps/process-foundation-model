@@ -3,7 +3,7 @@
 # Each backbone is built/encoded with its OWN spec, so mixed architectures (concat vs time-encoder,
 # learned vs RoPE) all land on one plot.
 backbones: {}
-eval_dataset: BPI12        # downstream dataset (BPI12 | BPI17) — MAY differ from the backbone's
+eval_dataset: BPI12        # downstream dataset (BPI12 | BPI17) - MAY differ from the backbone's
 eval_log:
   path: ${paths.data_dir}/${evaluate.eval_dataset}.xes
 strip_to_control_flow: true

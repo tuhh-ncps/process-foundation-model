@@ -2,8 +2,8 @@
 
 RoPE encodes position by *rotating* the query/key vectors inside attention by an angle
 proportional to the token's position, so relative position falls out of the Q·K dot product.
-Unlike a learned absolute position table it needs **no parameters and no maximum length** —
-rotations are computed on the fly for any position — which is what lets the trace encoder run
+Unlike a learned absolute position table it needs **no parameters and no maximum length** -
+rotations are computed on the fly for any position - which is what lets the trace encoder run
 on sequences of arbitrary length (and extrapolate beyond the lengths seen in training).
 """
 

@@ -21,7 +21,7 @@ def classification_metrics(
     ``ranking=True`` adds threshold-free ``auroc`` / ``auprc`` (macro over classes). These are
     the right primary metric for heavily imbalanced case tasks (mortality, ICU, readmission),
     where macro-F1 collapses to the majority floor even when the model ranks well. Only enable it
-    for small label spaces — a per-class AUROC over a large next-activity vocab is wasteful.
+    for small label spaces - a per-class AUROC over a large next-activity vocab is wasteful.
     """
     metrics: dict[str, Metric | MetricCollection] = {
         "acc": MulticlassAccuracy(num_classes=n_classes, average="micro"),

@@ -43,7 +43,7 @@ class ProcessMiningDataModule(L.LightningDataModule):
       (``collate_supervised``) for finetuning / probing.
 
     Pass ``feature_spec`` to reuse a pretrained model's encoding (vocab + stats)
-    instead of fitting a new one — required when finetuning a loaded backbone.
+    instead of fitting a new one - required when finetuning a loaded backbone.
     """
 
     def __init__(

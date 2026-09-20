@@ -1,4 +1,4 @@
-# Makefile — build the container once, submit to either cluster (NCPS / TUHH).
+# Makefile - build the container once, submit to either cluster (NCPS / TUHH).
 #
 # Self-contained: the image, data and outputs all live INSIDE this project directory,
 # so nothing depends on $SCRATCH or any path outside the repo. Partition / account /
@@ -77,9 +77,9 @@ submit_tuhh:
 
 ## backbones : list backbone run ids you can evaluate (from a finished pretrain)
 backbones:
-	@ls -1 outputs/backbones 2>/dev/null || echo "(none yet — run `make submit_ncps` first)"
+	@ls -1 outputs/backbones 2>/dev/null || echo "(none yet - run `make submit_ncps` first)"
 
-## eval_ncps : containerized (Apptainer) downstream eval on ncps — EVAL picks the mode
+## eval_ncps : containerized (Apptainer) downstream eval on ncps - EVAL picks the mode
 ##             (mirror of eval_oland). label_efficiency (single BACKBONE) | compare | zero_shot.
 ##   usage: make eval_ncps EVAL=compare          BACKBONES='{random:random,role:<id>}' SEEDS=3 EXTRA='...'
 ##          make eval_ncps EVAL=zero_shot        BACKBONES='{role:<id>}' EXTRA='...'
@@ -93,17 +93,17 @@ eval_ncps:
 setup_native:
 	bash scripts/setup_native.sh
 
-## login_native : store your W&B API key on a native cluster (once) — enables ONLINE logging.
+## login_native : store your W&B API key on a native cluster (once) - enables ONLINE logging.
 ##                (native analog of `make login`; oland has internet so runs log live, no sync)
 login_native:
 	@PATH="$$HOME/.local/bin:$$PATH" uv run wandb login
 
 ## sync_native : push any OFFLINE W&B runs from a native cluster (fallback; oland logs online
-##               by default, so this is rarely needed — only if you ran with logger.mode=offline).
+##               by default, so this is rarely needed - only if you ran with logger.mode=offline).
 sync_native:
 	@PATH="$$HOME/.local/bin:$$PATH" uv run wandb sync --sync-all outputs/wandb 2>/dev/null || echo "(no offline runs to sync)"
 
-## submit_oland : native (no-container) pretrain on oland — same knobs as submit_ncps.
+## submit_oland : native (no-container) pretrain on oland - same knobs as submit_ncps.
 ##   usage: make submit_oland EXPERIMENT=role DATASET=mimic_transfers EXTRA='ar.outcome_labeler=mimic_mortality'
 submit_oland:
 	$(ENV) sbatch slurm/oland/pretrain.sbatch
@@ -128,7 +128,7 @@ sync:
 
 ## help : show the procedure and list targets
 help:
-	@echo "PM-Foundation HPC — sbatch scripts organized per cluster under slurm/<cluster>/:"
+	@echo "PM-Foundation HPC - sbatch scripts organized per cluster under slurm/<cluster>/:"
 	@echo "  CONTAINERIZED (Apptainer):  ncps (1-GPU), tuhh (2-node DDP)"
 	@echo "  NATIVE uv (no container):   oland"
 	@echo
@@ -136,7 +136,7 @@ help:
 	@echo "  1. make build       (build .sif once)      1. make setup_native  (uv + .venv, once)"
 	@echo "  2. make submit_ncps / submit_tuhh          2. make submit_oland"
 	@echo "  3. make eval_ncps EVAL=compare|zero_shot|label_efficiency          3. make eval_oland EVAL=compare|zero_shot|label_efficiency"
-	@echo "  4. make sync        (push offline W&B)      (W&B logs online directly — no sync)"
+	@echo "  4. make sync        (push offline W&B)      (W&B logs online directly - no sync)"
 	@echo "     make backbones / make queue    (both: list run ids / job status)"
 	@echo
 	@echo "Overrides: EXPERIMENT=<arch>  DATASET=bpi12|bpi12_bpi17  LOGGER=wandb|none  OUT=/..."

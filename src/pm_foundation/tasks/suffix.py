@@ -26,7 +26,7 @@ class RemainingCountHead(TaskHead):
     """Predict the number of events remaining until case end, from each event state. Loss: MAE.
 
     Target at position ``i`` is ``(#real events - 1) - i`` (0 at the last event), derived from the
-    padding mask — a control-flow analogue of remaining-time.
+    padding mask - a control-flow analogue of remaining-time.
     """
 
     target_key = "next_activity"  # plumbing only; the target comes from padding_mask
@@ -72,7 +72,7 @@ class FutureActivitySetHead(TaskHead):
     """Predict the SET of activities occurring in the suffix (multi-label) from each event state.
 
     Target at position ``i`` is the multi-hot of ``{activity_{i+1}, .., activity_L}`` in the eval
-    vocabulary — derived from the ``next_activity`` target sequence by a reverse cumulative OR
+    vocabulary - derived from the ``next_activity`` target sequence by a reverse cumulative OR
     (``next_activity[i]`` is the activity at ``i+1``). Loss: BCE-with-logits over real positions.
     """
 

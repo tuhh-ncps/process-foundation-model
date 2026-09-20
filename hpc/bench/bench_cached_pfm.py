@@ -9,7 +9,7 @@ has to run ONCE per log instead of once per epoch per task. This script measures
   4. time from the start of encoding until every test prediction is done.
 
 For a fair speed-up it also runs the STANDARD path (one Lightning probe per task, backbone re-run
-every epoch) inside the same process, on the same GPU, under the SAME timer definition — the timer
+every epoch) inside the same process, on the same GPU, under the SAME timer definition - the timer
 starts after data preparation in both cases, so log parsing and splitting are excluded from both.
 
 Everything else is the v2 protocol, identical to the main grid: chronological 70/15/15 split,

@@ -1,4 +1,4 @@
-# MIMIC transfer study — the 2x2 of (data seen/unseen) x (task seen/unseen), all on the
+# MIMIC transfer study - the 2x2 of (data seen/unseen) x (task seen/unseen), all on the
 # MIMIC care-unit log capped at 10000 admissions. One config; the four quadrants are selected
 # on the CLI (see docs below). Backbone ids come from completed pretraining runs.
 #
@@ -7,7 +7,7 @@
 #   finetune: []       -> frozen probe (Q1/Q2/Q3)   |   finetune: [fm] -> end-to-end (Q4, seen task)
 #
 # The task list below is the full set; pass evaluate.tasks=[...] to restrict per quadrant.
-# Label tasks use a FIXED early observation window (24h/48h) — leak-free, standardized prediction
+# Label tasks use a FIXED early observation window (24h/48h) - leak-free, standardized prediction
 # time. Imbalanced binaries report AUROC (macro-F1 floors under 1-3% prevalence). Better-balanced
 # formulations: icu_ever (~4%, vs icu_24h ~1.4%), los_long=LOS>=7d (~30%, vs 3-class los).
 #   Q1 Unseen data, pretext tasks   : tasks=[next_activity, next_time, remaining_time]

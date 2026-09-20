@@ -1,12 +1,12 @@
 """Warm-start downstream heads from the pretrained AR pretext heads.
 
 When a downstream task *is* one of the pretraining pretexts, the foundation model already
-learned a head that solves it — so a fresh random probe wastes labels re-discovering a known
+learned a head that solves it - so a fresh random probe wastes labels re-discovering a known
 mapping. Warm-starting the downstream head from the persisted pretext head (``ar_heads.pt``)
 gives near-optimal transfer at *zero* labels:
 
 - **next-activity**: the pretext activity head *is* a next-activity classifier over the same
-  vocab — copy its weights (dropping the extra END row if present).
+  vocab - copy its weights (dropping the extra END row if present).
 - **next-time**: the pretext time head predicts the *standardized* log-Δt ``z``; the
   downstream target is ``log1p(Δt) = z·σ + μ`` (the same gap, unstandardized), so the
   downstream linear is an exact affine image of the pretext head: ``W ← σ·W``, ``b ← σ·b + μ``.

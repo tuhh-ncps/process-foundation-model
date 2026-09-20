@@ -6,7 +6,7 @@ aligned temporal split, averaged over seeds. This is the reusable-backbone test:
 "does this pretrained backbone help, across tasks, vs a random one?"
 
 Leakage notes: the split is whole-case temporal (no case in two splits). Per-event
-tasks (next-activity, remaining-time) are *forecast-from-prefix* tasks — for an honest
+tasks (next-activity, remaining-time) are *forecast-from-prefix* tasks - for an honest
 number use a **causal** backbone (``model_cfg["causal"]=True``), so per-event states
 do not see the future. Outcome uses the leak-free stripped prefix via its labeler.
 """

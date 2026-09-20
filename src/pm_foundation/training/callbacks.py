@@ -25,7 +25,7 @@ class LearningCurveRecorder(L.Callback):
         self.history: list[dict[str, Any]] = []
 
     def on_train_epoch_end(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
-        # Record only LOSS curves — mixing a 0–1 accuracy onto the same axis as the losses just
+        # Record only LOSS curves - mixing a 0–1 accuracy onto the same axis as the losses just
         # confuses the plot. Non-loss metrics (e.g. next-activity accuracy) still reach the
         # experiment logger (W&B) directly via self.log; they're only excluded from this curve.
         row: dict[str, Any] = {"epoch": int(trainer.current_epoch)}
@@ -34,7 +34,7 @@ class LearningCurveRecorder(L.Callback):
                 continue
             try:
                 row[key] = float(value)
-            except (TypeError, ValueError):  # non-scalar metric — skip
+            except (TypeError, ValueError):  # non-scalar metric - skip
                 continue
         self.history.append(row)
 

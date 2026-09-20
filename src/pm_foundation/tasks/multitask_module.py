@@ -82,7 +82,7 @@ class MultiTaskLitModule(L.LightningModule):
         self.finetune_role = bool(finetune_role) and getattr(backbone, "role_encoder", None) is not None
         self.optimizer_cfg = optimizer_cfg or {}
         # Optional per-DIMENSION standardization (BatchNorm) of the frozen features before every
-        # head — a better-conditioned input lets a linear probe converge from fewer labels. NOT
+        # head - a better-conditioned input lets a linear probe converge from fewer labels. NOT
         # LayerNorm: the encoder already ends with a LayerNorm, so features are per-sample
         # normalized, but per-dimension variances still differ (~0.3-1.5x); BatchNorm equalizes
         # them, which is what conditions a linear probe. Separate stats for the per-event states

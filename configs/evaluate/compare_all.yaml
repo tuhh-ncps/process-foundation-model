@@ -8,7 +8,7 @@ backbones:
   ar_bpi12_rope: REPLACE_WITH_RUN_ID
   ar_multi_rope: REPLACE_WITH_RUN_ID
   random: random
-eval_dataset: BPI12        # downstream dataset (BPI12 | BPI17) — MAY differ from the backbone's
+eval_dataset: BPI12        # downstream dataset (BPI12 | BPI17) - MAY differ from the backbone's
 eval_log:
   path: ${paths.data_dir}/${evaluate.eval_dataset}.xes
 strip_to_control_flow: true

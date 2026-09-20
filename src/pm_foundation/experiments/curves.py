@@ -109,7 +109,7 @@ def _mean(values: list[float]) -> float:
 
 
 def _std(values: list[float], mean: float) -> float:
-    """Population std over seeds (0.0 for a single seed) — used for error bands."""
+    """Population std over seeds (0.0 for a single seed) - used for error bands."""
     if len(values) < 2:
         return 0.0
     return (sum((v - mean) ** 2 for v in values) / len(values)) ** 0.5
@@ -179,7 +179,7 @@ def _draw_task(
     """Draw one task's label-efficiency curves (one line per backbone) onto ``ax``.
 
     The x-axis is the ACTUAL number of training cases (``n_train_samples``), so distances are
-    proportional to real sample counts — a ``log`` axis (default) keeps budgets that span orders
+    proportional to real sample counts - a ``log`` axis (default) keeps budgets that span orders
     of magnitude legible while making the spacing proportional to sample-size *ratios* (so
     1000->all reads far wider than 300->1000); ``linear`` gives raw-proportional spacing. Falls
     back to evenly-spaced categorical positions for older runs without ``n_train_samples``.
@@ -262,7 +262,7 @@ def plot_label_efficiency(
     plus a combined ``summary.{pdf,png}`` (a grid with one panel per task, all backbones overlaid).
     Per-task plots are titleless (the caption carries the description); the summary panels keep the
     task name so they remain identifiable. Returns all written paths. ``x_scale`` is ``log``
-    (default) or ``linear`` — see :func:`_draw_task`.
+    (default) or ``linear`` - see :func:`_draw_task`.
     """
     if plt is None:
         return []

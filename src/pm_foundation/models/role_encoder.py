@@ -1,17 +1,17 @@
 """Candidate-record activity encoder: fingerprints -> directed message-passing -> fused e(a).
 
 Encodes every activity of a catalogue as a **record** of four channels:
-    role      — directed message-passing embedding of its fingerprint over the DFG (structural;
-                GIN-style update with a mean aggregator by default — see DirectedGinLayer)
-    name      — hashed char-trigram bag embedding of the label (lexical)
-    stats     — the raw fingerprint through a small MLP (un-smoothed evidence)
-    graph ctx — P(in)/P(out)-weighted mean of neighbor roles (1-hop context)
+    role      - directed message-passing embedding of its fingerprint over the DFG (structural;
+                GIN-style update with a mean aggregator by default - see DirectedGinLayer)
+    name      - hashed char-trigram bag embedding of the label (lexical)
+    stats     - the raw fingerprint through a small MLP (un-smoothed evidence)
+    graph ctx - P(in)/P(out)-weighted mean of neighbor roles (1-hop context)
 fused into one ``role_dim`` vector per activity. The table serves BOTH sides of the
 model (tied): the hybrid input channel ``ID (+) e(a_i)`` and the candidate bank of the
 open-vocabulary matching head.
 
-Vocabulary-freedom: inputs are corpus statistics + label text only — never activity
-ids — so a NEW dataset's catalogue maps through the frozen encoder with no retraining
+Vocabulary-freedom: inputs are corpus statistics + label text only - never activity
+ids - so a NEW dataset's catalogue maps through the frozen encoder with no retraining
 (``set_graph`` swaps the graph buffers; see ``pm_foundation.data.roles`` for the
 train-split-only leakage contract).
 
@@ -34,14 +34,14 @@ class DirectedGinLayer(nn.Module):
 
     ``agg = (1+eps)*h + adj_in @ h + adj_out @ h``. The AGGREGATOR is set by the adjacency the caller
     installs (``model.aggregator`` via ``roles.apply_aggregator``): ``sum`` (DEFAULT) uses a binary
-    adjacency so ``adj @ h`` is the neighbour SUM that gives GIN its Weisfeiler-Leman power — true
+    adjacency so ``adj @ h`` is the neighbour SUM that gives GIN its Weisfeiler-Leman power - true
     GIN. ``mean`` uses ``fit_role_graph``'s ROW-NORMALIZED transition matrix, a probability-weighted
     mean (strictly weaker, but scale-invariant across logs of different sizes). The encoder learns to
-    its adjacency scale, so the SAME aggregator is used at pretrain and inference — it is persisted in
+    its adjacency scale, so the SAME aggregator is used at pretrain and inference - it is persisted in
     the manifest and wired across pretrain / eval / role_pretrain. Config default is ``sum``; the code
     fallback stays ``mean`` so pre-flip (mean-trained) backbones without the key still evaluate
     correctly. A 5-seed standalone A/B found the two tied on role-space quality (~0.81; depths 1-3
-    tied, 4-5 over-smooth) — sum is chosen as the theoretically-correct form; a joint-training GPU
+    tied, 4-5 over-smooth) - sum is chosen as the theoretically-correct form; a joint-training GPU
     check remains pending."""
 
     def __init__(self, dim: int) -> None:
@@ -86,7 +86,7 @@ class ActivityEncoder(nn.Module):
         )
         self.out_norm = nn.LayerNorm(role_dim)
 
-        # Catalogue buffers — swapped per dataset via set_graph (checkpointed with the model).
+        # Catalogue buffers - swapped per dataset via set_graph (checkpointed with the model).
         self.register_buffer("feats", torch.zeros(n_activities, N_ROLE_FEATURES))
         self.register_buffer("adj_in", torch.zeros(n_activities, n_activities))
         self.register_buffer("adj_out", torch.zeros(n_activities, n_activities))
@@ -125,8 +125,8 @@ class ActivityEncoder(nn.Module):
 
         channels = [h, name, stats, ctx]
         if augment and self.channel_dropout > 0:
-            # Drop whole channels (never all four) so no single channel — especially
-            # name — becomes a shortcut the others can't cover for.
+            # Drop whole channels (never all four) so no single channel - especially
+            # name - becomes a shortcut the others can't cover for.
             drop = torch.rand(len(channels)) < self.channel_dropout
             if bool(drop.all()):
                 drop[0] = False
@@ -175,14 +175,14 @@ ROLE_FEATURE_SUBSETS = {
 
 
 class RoleEmbedder(nn.Module):
-    """Structural-only activity embedder for the role-embedding ablation — NO name/stats/ctx fusion.
+    """Structural-only activity embedder for the role-embedding ablation - NO name/stats/ctx fusion.
 
     Produces ``e(a)`` in ``R^role_dim`` from the fingerprint (+ DFG for ``gin``), a drop-in for
     ``ActivityEncoder`` (same ``set_graph`` / ``forward(augment)`` / ``contrastive_loss`` interface,
     same swappable ``role_encoder.pt``). ``arch``:
-      * ``raw`` — the raw fingerprint itself (frozen, no params; ``role_dim`` must equal #features),
-      * ``mlp`` — a per-node MLP over the fingerprint (no message passing),
-      * ``gin`` — directed GIN over the DFG (the current structural channel, in isolation).
+      * ``raw`` - the raw fingerprint itself (frozen, no params; ``role_dim`` must equal #features),
+      * ``mlp`` - a per-node MLP over the fingerprint (no message passing),
+      * ``gin`` - directed GIN over the DFG (the current structural channel, in isolation).
     ``feature_subset`` selects the input columns ("all"=15 or "five"=the 5 non-positional feats).
     ``feature_mask`` (optional) keeps the input width but zeroes every column not listed (feature-budget ladder).
     """
@@ -235,7 +235,7 @@ class RoleEmbedder(nn.Module):
             self.gin = nn.ModuleList(DirectedGinLayer(role_dim) for _ in range(n_layers))
         else:
             raise ValueError(f"unknown role arch {arch!r} (expected raw|mlp|gin)")
-        # Catalogue buffers (no name_ids — this variant has no name channel).
+        # Catalogue buffers (no name_ids - this variant has no name channel).
         self.register_buffer("feats", torch.zeros(n_activities, N_ROLE_FEATURES))
         self.register_buffer("adj_in", torch.zeros(n_activities, n_activities))
         self.register_buffer("adj_out", torch.zeros(n_activities, n_activities))

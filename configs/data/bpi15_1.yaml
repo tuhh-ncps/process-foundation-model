@@ -1,4 +1,4 @@
-# BPI Challenge 2015 — Municipality 1 building-permit process (public administration).
+# BPI Challenge 2015 - Municipality 1 building-permit process (public administration).
 # Open-vocabulary regime (~1,199 cases / 398 acts): a stress test for the vocab-free role channel. Own vocab.
 # Long cases are truncated at model.max_seq_len. See docs/dataset_portfolio.md (BPI'15).
 vocab_logs:

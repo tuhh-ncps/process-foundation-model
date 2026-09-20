@@ -1,4 +1,4 @@
-"""Aggregate STRUCTURAL fingerprint per log — quantifies loopiness/rework to explain cross-domain
+"""Aggregate STRUCTURAL fingerprint per log - quantifies loopiness/rework to explain cross-domain
 transfer. Confirms whether logs cluster by process STRUCTURE (not business domain), and ranks each
 log's structural distance to Sepsis (the transfer target). See docs/dataset_portfolio.md.
 

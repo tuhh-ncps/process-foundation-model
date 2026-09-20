@@ -1,4 +1,4 @@
-# Hospital Billing — billing of hospital service packages (healthcare / finance).
+# Hospital Billing - billing of hospital service packages (healthcare / finance).
 # ~100k cases, 451k events, 18 activities; short cases (median 5). Own vocab.
 # See docs/dataset_portfolio.md.
 vocab_logs:

@@ -2,17 +2,17 @@
 
 For each downstream task, each backbone, each label budget, and each seed, this trains
 a probe on a random subsample of the training traces and measures the test metric.
-Probes are **frozen** by default (backbone frozen; only the head learns — the classic
+Probes are **frozen** by default (backbone frozen; only the head learns - the classic
 "how much do the pretrained features buy you" setting). With ``finetune`` a backbone is
 trained **end-to-end** instead; a ``random`` backbone + finetune is a NORMAL TRANSFORMER
-trained from scratch — the honest supervised baseline for the label-efficiency hypothesis
+trained from scratch - the honest supervised baseline for the label-efficiency hypothesis
 (*does a pretrained foundation backbone reach the target with fewer labels than a
 from-scratch transformer?*). ``labels_to_target.csv`` reports exactly that: the smallest
 budget each backbone needs to hit the per-task target. Results for every task
 are written together under ``outputs/label_efficiency/<run_id>/`` as one long-format
 CSV, a mean-over-seeds CSV, and one PNG per task. For the classification tasks
-(``next_activity`` and ``outcome``) a confusion matrix — PNG heatmap (row-normalized
-recall) plus a raw-count CSV — is also written per backbone, computed at the largest
+(``next_activity`` and ``outcome``) a confusion matrix - PNG heatmap (row-normalized
+recall) plus a raw-count CSV - is also written per backbone, computed at the largest
 label budget and the first seed (the best-case probe). The run manifest names the
 backbone run(s) it consumed, and each backbone directory is back-linked to this
 evaluation, so curves and backbones are traceable both ways.
@@ -182,7 +182,7 @@ _LABELERS: dict[str, Callable[[], Any]] = {
 # First-class outcome-kind TASK names -> their fixed labeler. Each is an independent
 # classification task with its OWN train/val/test outcome splits, so `tasks` may list any
 # subset and they all run in one grid (unlike the single config-driven `outcome` task).
-# mortality/los/icu predict from a FIXED early observation window (see labeling.py) — the
+# mortality/los/icu predict from a FIXED early observation window (see labeling.py) - the
 # leak-free, standardized-prediction-time formulation.
 _TASK_LABELERS: dict[str, Callable[[], Any]] = {
     "mortality_24h": mimic_mortality_24h,
@@ -229,12 +229,12 @@ _TASKS: dict[str, _TaskDef] = {
     "outcome": _TaskDef("outcome", "macro_f1", True),
     # First-class outcome-kind tasks (labeler-backed; see _TASK_LABELERS), from a fixed 24h/48h
     # observation window (leak-free prediction point). The imbalanced BINARY tasks report AUROC
-    # (threshold-free) as their primary metric — macro-F1 collapses to the majority floor under
+    # (threshold-free) as their primary metric - macro-F1 collapses to the majority floor under
     # 1-3% prevalence even when the model ranks well (a strong LR baseline hits AUROC ~0.79 on
     # mortality). The 3-class LOS bucket keeps macro-F1. All tasks also compute auroc/auprc/f1/acc.
     "mortality_24h": _TaskDef("outcome", "auroc", True),
     "mortality_48h": _TaskDef("outcome", "auroc", True),
-    "los_24h": _TaskDef("outcome", "macro_f1", True),  # 3-class, balanced — macro-F1 is fine
+    "los_24h": _TaskDef("outcome", "macro_f1", True),  # 3-class, balanced - macro-F1 is fine
     "los_48h": _TaskDef("outcome", "macro_f1", True),
     "los_long_24h": _TaskDef("outcome", "auroc", True),  # binary LOS>=7d (~30% pos)
     "los_long_48h": _TaskDef("outcome", "auroc", True),
@@ -252,7 +252,7 @@ class _KeepBestState(L.Callback):
     ``EarlyStopping`` decides *when* to stop but leaves the model at the last (post-plateau)
     epoch; this keeps a CPU snapshot of the best-scoring epoch and reloads it, so the probe is
     evaluated at its best-val point rather than its final one. Kept in RAM (not on disk) because
-    the grid runs one short-lived Trainer per task x backbone x size x seed — hundreds of tiny
+    the grid runs one short-lived Trainer per task x backbone x size x seed - hundreds of tiny
     checkpoint files would otherwise churn.
     """
 
@@ -267,7 +267,7 @@ class _KeepBestState(L.Callback):
         if trainer.sanity_checking:  # the pre-train sanity pass is not a real epoch
             return
         current = trainer.callback_metrics.get(self.monitor)
-        if current is None:  # metric absent (e.g. empty val split) — nothing to select on
+        if current is None:  # metric absent (e.g. empty val split) - nothing to select on
             return
         value = float(current)
         improved = value < self.best if self.mode == "min" else value > self.best
@@ -298,7 +298,7 @@ def _strip_to_control_flow(log: EventLog) -> EventLog:
 
 
 def _encoded_len(trace: Trace, spec: FeatureSpec) -> int:
-    """Number of events after truncation — the padded length the collate will produce."""
+    """Number of events after truncation - the padded length the collate will produce."""
     n = len(trace.events)
     return min(n, spec.max_seq_len) if spec.max_seq_len else n
 
@@ -318,7 +318,7 @@ def _collect_confusion(
     """Run the trained frozen probe over the test set and return a (C, C) confusion matrix.
 
     ``next_activity``: per-position, with the argmax restricted to real-activity columns
-    (a next activity is never a reserved token — same convention as the zero-shot head).
+    (a next activity is never a reserved token - same convention as the zero-shot head).
     ``outcome``: per-trace over all outcome classes. Reuses the backbone's own device.
     """
     module.eval()
@@ -358,11 +358,11 @@ def _resolve_per_backbone(
     backbone (or ``config.model`` if all-untrained); ``random``/``scratch`` are PLAIN transformers
     (role_dim=0), ``random_role`` keeps the role channel:
 
-      - ``random`` — a FROZEN, **vocab-blind** floor: its activity vocabulary is empty, so every
-        activity (from either dataset) maps to UNK. It genuinely knows NO vocabulary — just
+      - ``random`` - a FROZEN, **vocab-blind** floor: its activity vocabulary is empty, so every
+        activity (from either dataset) maps to UNK. It genuinely knows NO vocabulary - just
         position + random features + a trained head. The honest bottom line, on equal (dead-ID)
         footing with disjoint-vocab cross-domain backbones.
-      - ``scratch`` — a random-init model trained END-TO-END on the eval labels; it uses the eval
+      - ``scratch`` - a random-init model trained END-TO-END on the eval labels; it uses the eval
         dataset's own vocabulary (so it can learn activity embeddings). The "normal transformer
         from scratch" baseline (auto-finetuned in the sweep)."""
     per: dict[str, tuple[FeatureSpec, dict[str, Any]]] = {}
@@ -405,13 +405,13 @@ def _labels_to_target(
     records: list[dict[str, Any]], *, frac: float = 0.95, absolute: dict[str, float] | None = None
 ) -> list[dict[str, Any]]:
     """The crux of the label-efficiency hypothesis: for each (task, backbone), the SMALLEST label
-    budget whose mean metric meets the task target — a pretrained backbone should reach it at far
+    budget whose mean metric meets the task target - a pretrained backbone should reach it at far
     fewer labels than a from-scratch transformer.
 
     Target = ``absolute[task]`` if given, else ``frac`` of the best mean achieved for that task by
     ANY backbone at ANY budget (for a lower-is-better metric, the best is the min and the target is
     ``min / frac``). "Meets" respects the metric direction. ``labels_needed`` is "not reached" when
-    no budget qualifies (a strong result in itself — the backbone never gets there).
+    no budget qualifies (a strong result in itself - the backbone never gets there).
     """
     agg = aggregate_label_efficiency(records)
     mode_of = {r["backbone_alias"]: r.get("mode", "frozen") for r in records}
@@ -457,7 +457,7 @@ def _labels_to_target(
 
 
 def _checkpoint_key(config: dict[str, Any], backbones: dict[str, str]) -> str:
-    """Stable hash over the fields that DEFINE this grid — so re-running an identical, crashed run
+    """Stable hash over the fields that DEFINE this grid - so re-running an identical, crashed run
     resumes its checkpoint, while any real change (backbone, dataset, budgets, probe settings)
     starts a fresh one. Excludes cosmetic fields (name/output_dir)."""
     payload = {
@@ -520,7 +520,7 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
     # "using all event states" (mean/last/max) from "learning event importance" (attention).
     pooling = str(config.get("pooling", "trace"))
     # Optional trainable LayerNorm on the frozen backbone features before the head (probe-side,
-    # backbone untouched) — accelerates the low-budget end of a linear probe. Default off.
+    # backbone untouched) - accelerates the low-budget end of a linear probe. Default off.
     normalize_features = bool(probe_cfg.get("normalize_features", False))
 
     # End-to-end (unfrozen) training. `finetune` is a bool (all backbones) or a list of aliases.
@@ -558,11 +558,11 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
     if strip:
         log = _strip_to_control_flow(log)
     built = build_traces(log, min_trace_len=min_len, max_trace_len=max_len)
-    # holdout=false: NO train/val/test split — the probe trains on subsamples of the FULL eval log
+    # holdout=false: NO train/val/test split - the probe trains on subsamples of the FULL eval log
     # and is tested on the FULL log. Intended for CROSS-DOMAIN eval (the frozen backbone never saw
     # this domain, so there is no backbone-leakage). At small budgets this is ~leak-free few-shot
     # label efficiency; at the largest budget train == test, so THAT point is an optimistic upper
-    # bound. Descriptors (feature spec + role graph) are then fit over all traces too — fine for
+    # bound. Descriptors (feature spec + role graph) are then fit over all traces too - fine for
     # cross-domain aggregate stats, but do NOT use holdout=false for a leakage-strict in-domain claim.
     holdout = bool(config.get("holdout", True))
     role_corpus = str(config.get("role_corpus", "train"))
@@ -584,7 +584,7 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
 
     # Next-activity TARGET label space = the EVAL dataset's OWN activity vocabulary (fit here on the
     # eval train split), DECOUPLED from each backbone's input-encoding vocab. Inputs are encoded with
-    # the backbone's training vocab — cross-dataset activities land on UNK there — but the target is
+    # the backbone's training vocab - cross-dataset activities land on UNK there - but the target is
     # the eval dataset's REAL next activity, so accuracy honestly measures transfer instead of
     # collapsing to "predict UNK" (a false ~100%). Same-dataset eval is unchanged (identical vocab,
     # and accuracy is invariant to id ordering).
@@ -596,7 +596,7 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
 
     # Confusion matrices (next_activity / outcome) are collected at the LARGEST label budget and
     # the first seed. The next-activity matrix is over REAL activities only (reserved PAD/UNK/…
-    # excluded — a next activity is never a reserved token).
+    # excluded - a next activity is never a reserved token).
     reserved = set(RESERVED_TOKENS)
     _eval_vocab_list = eval_activity_vocab.to_list()
     na_real_ids = torch.tensor(
@@ -605,7 +605,7 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
     na_real_names = [_eval_vocab_list[i] for i in na_real_ids.tolist()]
 
     # Role channel (backbones with role_dim>0): fit the EVAL catalogue's fingerprints/DFG
-    # on the eval dataset's TRAIN SPLIT ONLY — never the val/test traces being scored
+    # on the eval dataset's TRAIN SPLIT ONLY - never the val/test traces being scored
     # (data/roles.py leakage contract). The frozen ActivityEncoder maps this new catalogue
     # into the shared role space with no retraining.
     eval_role_graph = None
@@ -613,7 +613,7 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
         eval_role_graph = fit_role_graph(list(splits.train.traces), eval_activity_vocab)
 
     # role_corpus="budget": the descriptors of a held-out log are rebuilt from ONLY the training
-    # cases of each (budget, seed) probe — the strict few-shot reading, where nothing but the
+    # cases of each (budget, seed) probe - the strict few-shot reading, where nothing but the
     # labelled cases is known about the target log. The graph is fitted on the very trace list
     # `_task_loaders` hands to the head (per-event tasks: the N sampled cases; outcome-kind tasks:
     # their labeler-filtered, prefix-stripped sample), cached per (task kind, size, seed). The label
@@ -691,7 +691,7 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
         if min(n_lab.values()) == 0:
             print(
                 f"[label-efficiency] labeler {name!r} for task {task!r} produced empty splits on this "
-                f"dataset (train/val/test = {n_lab['train']}/{n_lab['val']}/{n_lab['test']}) — SKIPPING "
+                f"dataset (train/val/test = {n_lab['train']}/{n_lab['val']}/{n_lab['test']}) - SKIPPING "
                 f"task {task!r}.",
                 flush=True,
             )
@@ -728,13 +728,13 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
                 **dl_kw,
             )
 
-        # role_vocab: only when a role backbone is present — role_ids encoded with the EVAL
+        # role_vocab: only when a role backbone is present - role_ids encoded with the EVAL
         # catalogue so its e(a) table (installed via set_graph) is indexed consistently.
         role_vocab = eval_activity_vocab if eval_role_graph is not None else None
 
         def per_event_loader(traces: list[Trace], shuffle: bool) -> DataLoader[Any]:
             # Encode inputs with THIS backbone's spec; encode next-activity TARGETS with the eval
-            # dataset's vocab (honest cross-dataset accuracy — see eval_activity_vocab above).
+            # dataset's vocab (honest cross-dataset accuracy - see eval_activity_vocab above).
             ds = SupervisedTraceDataset(
                 EventLog(traces=list(traces), activity_vocab=vocab),
                 spec,
@@ -782,7 +782,7 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
             pooling=pooling,
         )
         # Warm-start heads whose task matches a pretext (next-activity/next-time) from the
-        # backbone's persisted pretext heads — near-zero-label transfer. Random backbones
+        # backbone's persisted pretext heads - near-zero-label transfer. Random backbones
         # and non-pretext tasks (outcome, remaining-time) fall through to a fresh head.
         if warm_start and backbones[alias] not in (_RANDOM, _SCRATCH, _RANDOM_ROLE) and task in ws.WARM_STARTABLE:
             ws.warm_start(head, task, registry.run_dir("backbone", backbones[alias]))
@@ -824,7 +824,7 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
         # frozen encoder scores this dataset's activities in the shared role space.
         probe_role_graph = role_graph_for(tdef.kind, size, seed, train_traces)
         if role_encoder is not None and probe_role_graph is not None:
-            # Match the aggregator this backbone was TRAINED with (mean|sum, from its manifest) —
+            # Match the aggregator this backbone was TRAINED with (mean|sum, from its manifest) -
             # the encoder learns to its adjacency scale, so mismatching it would corrupt e(a).
             role_encoder.set_graph(
                 apply_aggregator(probe_role_graph, str(model_cfg.get("aggregator", "mean")))
@@ -867,7 +867,7 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
     cm_store: dict[tuple[str, str], torch.Tensor] = {}  # (task, alias) -> confusion matrix
 
     # --- crash-recovery checkpoint ------------------------------------------------------------
-    # Each probe is independent, but records/cm only hit disk at the very end — a crash mid-grid
+    # Each probe is independent, but records/cm only hit disk at the very end - a crash mid-grid
     # (OOM, walltime, a labeler mismatch) loses ALL completed probes. Persist every finished probe
     # to a config-keyed checkpoint and skip already-done probes on re-run, so re-submitting the same
     # command resumes instead of restarting. `fresh: true` forces a clean run; the checkpoint is
@@ -899,7 +899,7 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
         if completed:
             print(
                 f"[label-efficiency] resuming checkpoint {ckpt_dir.name}: "
-                f"{len(completed)}/{total} probes already done — skipping them",
+                f"{len(completed)}/{total} probes already done - skipping them",
                 flush=True,
             )
 
@@ -945,7 +945,7 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
                             {"task": task, "alias": alias, "cm": cm}, ckpt_dir / f"cm_{done}.pt"
                         )
 
-    # Activity-vocabulary overlap between each backbone (input vocab) and the eval dataset — the
+    # Activity-vocabulary overlap between each backbone (input vocab) and the eval dataset - the
     # ceiling on how much ACTIVITY-IDENTITY knowledge can transfer. ~1.0 = same/shared vocab (full
     # transfer possible); ~0.0 = disjoint vocab (only structural/temporal signal can transfer, and
     # next-activity accuracy will be near a time-only baseline). Recorded so cross-dataset runs are
@@ -1003,7 +1003,7 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
     plot_label_efficiency(records, ctx.dir, x_scale=str(config.get("x_scale", "log")))
 
     # Confusion matrices (PNG + raw-count CSV) per backbone for next_activity / outcome, at the
-    # largest label budget and first seed — see cm_store above.
+    # largest label budget and first seed - see cm_store above.
     for (task, alias), cm in cm_store.items():
         names = na_real_names if task == "next_activity" else list(task_labelers[task].classes)
         stem = ctx.dir / f"confusion_{task}_{alias}"
@@ -1012,7 +1012,7 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
             cm,
             names,
             stem.with_suffix(".png"),
-            f"{alias}: {task} confusion (n_labels=all, seed={first_seed}) — row=recall",
+            f"{alias}: {task} confusion (n_labels=all, seed={first_seed}) - row=recall",
         )
         print(
             f"[label-efficiency] confusion {task}/{alias}: {int(cm.sum()):,} predictions "
@@ -1020,7 +1020,7 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
             flush=True,
         )
 
-    # "How many labels required?" — smallest budget each backbone needs to hit the per-task target.
+    # "How many labels required?" - smallest budget each backbone needs to hit the per-task target.
     # This is the headline of the foundation-vs-from-scratch hypothesis: a pretrained backbone
     # should reach the target at a far smaller budget than a normal transformer trained from scratch.
     lt_rows = _labels_to_target(records, frac=target_frac, absolute=target_abs)
@@ -1061,7 +1061,7 @@ def run_label_efficiency(config: dict[str, Any]) -> Path:
     registry.finish(ctx, links={"backbones": backbones})
     shutil.rmtree(
         ckpt_dir, ignore_errors=True
-    )  # grid finished cleanly — drop the recovery checkpoint
+    )  # grid finished cleanly - drop the recovery checkpoint
     return ctx.dir
 
 
@@ -1080,7 +1080,7 @@ def _build_head(
         assert labeler is not None
         return OutcomeHead(d_model, labeler.n_classes, pooling=pooling)
     # Activity-prediction heads output over the eval dataset's activity vocab (matches the decoupled
-    # target), NOT the backbone's input vocab — so the metric is honest under cross-dataset transfer.
+    # target), NOT the backbone's input vocab - so the metric is honest under cross-dataset transfer.
     n = next_activity_n if next_activity_n is not None else spec.n_activities
     if task == "next_activity":
         return NextActivityHead(d_model, n)
@@ -1104,8 +1104,8 @@ def _task_loaders(
     outcome_loader: Callable[[tuple[list[Trace], list[int]], bool], DataLoader[Any]],
 ) -> tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any], int, list[Trace]]:
     """Returns (train_dl, val_dl, test_dl, n_train, train_traces) where n_train is the ACTUAL number
-    of training cases used (the label budget capped by what's available) — used to place the
-    label-efficiency x-axis proportional to real sample count and to record it in the CSVs — and
+    of training cases used (the label budget capped by what's available) - used to place the
+    label-efficiency x-axis proportional to real sample count and to record it in the CSVs - and
     train_traces is the exact trace list the head trains on (role_corpus=budget fits the DFG on it)."""
     if tdef.kind == "outcome":
         train_pairs = list(zip(*outcome_splits["train"], strict=True))

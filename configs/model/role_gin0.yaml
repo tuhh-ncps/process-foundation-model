@@ -1,5 +1,5 @@
 # Role-embedding ablation candidate: GIN-0 (directed sum-GIN, depth-1, NO fingerprint features).
-# Featureless control — the GIN is fed a constant, so e(a) encodes ONLY DFG topology. Isolates how
+# Featureless control - the GIN is fed a constant, so e(a) encodes ONLY DFG topology. Isolates how
 # much of the other candidates' downstream performance comes from the 15-dim fingerprint vs the
 # graph structure alone. Same transformer backbone / Phase-2 setup as the other 4 candidates.
 d_model: 256

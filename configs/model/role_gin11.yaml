@@ -1,5 +1,5 @@
 # Role-embedding ablation candidate: GIN-11 (directed sum-GIN, depth-1, 11 PCA-selected feats).
-# Structural-only e(a) — NO name/stats/ctx fusion (role_arch=gin -> RoleEmbedder). Same transformer
+# Structural-only e(a) - NO name/stats/ctx fusion (role_arch=gin -> RoleEmbedder). Same transformer
 # backbone across all 4 candidates. Used for Phase-2 (backbone) with a frozen Phase-1 role encoder.
 d_model: 256
 n_layers: 6

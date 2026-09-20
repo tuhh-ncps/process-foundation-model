@@ -31,7 +31,7 @@ def linear_probe(
 ) -> dict[str, float]:
     """Train ``head`` over a frozen ``backbone`` and return test metrics.
 
-    The backbone is frozen (no gradient), so only the head learns — a true linear
+    The backbone is frozen (no gradient), so only the head learns - a true linear
     probe when ``head`` has no hidden layer. The head is keyed by its ``target_key``.
     """
     module = MultiTaskLitModule(

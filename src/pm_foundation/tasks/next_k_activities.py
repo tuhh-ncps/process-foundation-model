@@ -1,4 +1,4 @@
-"""Next-K-activities head — multi-step activity prediction (prefix-level).
+"""Next-K-activities head - multi-step activity prediction (prefix-level).
 
 At every event position the head predicts the next ``K`` activities (positions
 ``i+1 .. i+K``) from that event's causal state, in one shot. This is a strictly
@@ -31,7 +31,7 @@ IGNORE_INDEX = -100
 class NextKActivitiesHead(TaskHead):
     """Predicts the next ``k`` activities from each event state. Loss: mean CE over steps.
 
-    Metric ``acc`` is micro-accuracy pooled over all (position, step) pairs — i.e. the
+    Metric ``acc`` is micro-accuracy pooled over all (position, step) pairs - i.e. the
     mean per-step top-1 accuracy across the K horizons.
     """
 

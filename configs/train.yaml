@@ -1,4 +1,4 @@
-# Drives the REAL pm_foundation training flows via Hydra — same code local or on Slurm.
+# Drives the REAL pm_foundation training flows via Hydra - same code local or on Slurm.
 #   local pretrain :  python train.py experiment=role_rope trainer=local
 #   slurm pretrain :  python train.py -m experiment=role_rope trainer=ddp hydra/launcher=slurm \
 #                        hydra.launcher.partition=gpu hydra.launcher.nodes=2 hydra.launcher.gpus_per_node=1

@@ -1,7 +1,7 @@
 """Zero-shot open-vocabulary next-activity via the pretrained matching head.
 
 No training, no labels: a role backbone's pretrained query projection ``q_i = W h_i`` is
-cosine-matched against the EVAL catalogue's candidate table ``e(c)`` — both live in the same
+cosine-matched against the EVAL catalogue's candidate table ``e(c)`` - both live in the same
 role space, so the head predicts activities of a process it never saw. This is the sharpest
 test of cross-domain transfer: next-activity on the eval TEST split with the backbone (and
 candidate encoder) fully frozen.
@@ -51,7 +51,7 @@ def _load_role_backbone(
     model_cfg = dict(RunManifest.load(run_dir / "manifest.json").config["model"])
     if int(model_cfg.get("role_dim", 0)) <= 0:
         raise ValueError(
-            f"backbone {run_id!r} has no role channel — zero-shot matching needs role_dim>0"
+            f"backbone {run_id!r} has no role channel - zero-shot matching needs role_dim>0"
         )
     model_cfg["causal"] = True
     bb = TraceBackbone.from_config(model_cfg, spec)
@@ -76,7 +76,7 @@ def _load_role_backbone(
 
 def _adapt_role_encoder(bb: TraceBackbone, steps: int, lr: float) -> float | None:
     """Label-free adaptation: run ``steps`` of the role encoder's OWN self-supervised contrastive
-    loss on the INSTALLED (target-domain) graph, so the GIN specializes to the target's structure —
+    loss on the INSTALLED (target-domain) graph, so the GIN specializes to the target's structure -
     no labels used. Only the role encoder is updated; the rest of the frozen backbone is untouched.
     Returns the final contrastive loss (or None if the graph has < 2 real activities)."""
     enc = bb.embedding.role_encoder
@@ -110,7 +110,7 @@ def _score(
     score descending, so any top-k is a prefix slice.
     """
     table = F.normalize(bb.embedding.role_encoder(augment=False), dim=-1, eps=1e-8)  # (V, r)
-    cand = table[real_ids]  # (C, r) — real candidates only
+    cand = table[real_ids]  # (C, r) - real candidates only
     all_ranked, all_targets = [], []
     for batch in loader:
         states = bb.forward_batch(batch).event_states  # (B, L, d)
@@ -219,7 +219,7 @@ def run_zero_shot_matching(config: dict[str, Any]) -> Path:
 
     # Reference baselines on the SAME test targets, so a backbone's top-k is directly interpretable:
     #   frequency = rank candidates by marginal next-activity frequency in the TRAIN split (leak-free)
-    #               and predict that fixed ranking everywhere — the "always guess the common step" floor;
+    #               and predict that fixed ranking everywhere - the "always guess the common step" floor;
     #   uniform   = k / n_candidates (chance). A backbone only shows real matching signal above these.
     if (
         rows

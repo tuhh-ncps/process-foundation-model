@@ -11,8 +11,8 @@ One admission (``hadm_id``) = one trace. Its activities are the ordered care uni
 patient passed through. We then append up to two terminal events per admission, both at
 ``dischtime``:
 
-    1. mortality terminal — ``EXPIRED`` if the patient died in hospital, else ``DISCHARGED``.
-    2. readmission terminal (SURVIVORS only) — ``READMIT_30D`` if the SAME patient has a
+    1. mortality terminal - ``EXPIRED`` if the patient died in hospital, else ``DISCHARGED``.
+    2. readmission terminal (SURVIVORS only) - ``READMIT_30D`` if the SAME patient has a
        later admission whose ``admittime`` is within 30 days of this discharge, else
        ``NO_READMIT_30D``. Expired admissions get no readmission terminal (they cannot be
        readmitted, so they are excluded from the readmission cohort).
@@ -58,7 +58,7 @@ def build_log(mimic_root: Path, max_cases: int | None = None) -> pd.DataFrame:
         parse_dates=["intime"],
     )
     # Keep only real ward stays: an admission-linked row with a named care unit and a
-    # timestamp. This drops ED-only rows (null hadm_id) and discharge rows (null careunit) —
+    # timestamp. This drops ED-only rows (null hadm_id) and discharge rows (null careunit) -
     # our own terminal event replaces the latter.
     transfers = transfers.dropna(subset=["hadm_id", "careunit", "intime"])
     transfers["hadm_id"] = transfers["hadm_id"].astype("int64")

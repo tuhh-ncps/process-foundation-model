@@ -2,7 +2,7 @@
 
 ``run_label_efficiency`` is exposed LAZILY and deliberately. Task heads import
 ``evaluation.metrics`` for their metric collections, and ``label_efficiency`` imports those same
-task heads — so importing this package eagerly would create a cycle
+task heads - so importing this package eagerly would create a cycle
 (``evaluation`` -> ``label_efficiency`` -> ``tasks`` -> ``evaluation.metrics``).
 Keeping the re-export lazy means ``import pm_foundation.evaluation.metrics`` stays cheap and
 cycle-free, which is what the task heads rely on.

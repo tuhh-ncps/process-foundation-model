@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Self-contained label-efficiency replotter — imports NOTHING from pm_foundation.
+"""Self-contained label-efficiency replotter - imports NOTHING from pm_foundation.
 
 Reads each run's ``curves.csv`` and rewrites ``summary.png`` + per-task PNGs with a correct log
 x-axis: the zero-shot (0-label) budget is placed at the far left (labeled "0") instead of
@@ -102,7 +102,7 @@ def replot(run_dir: Path) -> None:
             _draw(ax, by[t])
         for ax in flat[len(tasks) :]:
             ax.axis("off")
-        fig.suptitle("label efficiency — all tasks & backbones", fontsize=13)
+        fig.suptitle("label efficiency - all tasks & backbones", fontsize=13)
         fig.tight_layout()
         fig.savefig(run_dir / "summary.png", dpi=120)
         plt.close(fig)

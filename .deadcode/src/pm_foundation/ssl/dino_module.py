@@ -64,7 +64,7 @@ class DinoLitModule(L.LightningModule):
         self.loss = loss
         self.optimizer_cfg = optimizer_cfg or {}
         # DINO freezes the projection head's prototype (last) layer for the first
-        # epoch(s) — the key guard against early collapse to a uniform output.
+        # epoch(s) - the key guard against early collapse to a uniform output.
         self.freeze_last_layer_epochs = freeze_last_layer_epochs
         # VICReg-style variance regularization on trace embeddings: a hinge keeping
         # each embedding dimension's batch std >= 1. At small model/data scale plain

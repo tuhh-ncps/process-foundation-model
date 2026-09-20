@@ -1,4 +1,4 @@
-"""DDP / Slurm variant of AR pretraining — kept SEPARATE from the local entrypoint.
+"""DDP / Slurm variant of AR pretraining - kept SEPARATE from the local entrypoint.
 
 This is the multi-node / multi-GPU version used only by ``scripts/train_hpc.py`` on a cluster.
 It reuses the *pure* data-prep helpers from :mod:`pm_foundation.training.ar_pretrain` (reading,
@@ -108,7 +108,7 @@ def pretrain_autoregressive_ddp(config: dict[str, Any]) -> Path:
     data_summary["n_train_traces_total"] = len(train_traces)
 
     # Role channel: fit activity fingerprints + DFG on the TRAIN split ONLY (same leakage
-    # contract as fit_feature_spec — never traces that will be predicted/scored).
+    # contract as fit_feature_spec - never traces that will be predicted/scored).
     role_graph = None
     if int(config["model"].get("role_dim", 0)) > 0:
         # aggregator (mean|sum) is a MODEL property, persisted in the manifest so eval reads it back
@@ -178,7 +178,7 @@ def pretrain_autoregressive_ddp(config: dict[str, Any]) -> Path:
                 )
         elif is_main:
             print(
-                f"[ar] outcome pretext: labeler {name!r} produced 0 labeled traces — head disabled"
+                f"[ar] outcome pretext: labeler {name!r} produced 0 labeled traces - head disabled"
             )
 
     if bool(config.get("length_bucketing", False)):
@@ -232,7 +232,7 @@ def pretrain_autoregressive_ddp(config: dict[str, Any]) -> Path:
     module = build_autoregressive_module(dict(config["model"]), ar_cfg, feature_spec)
 
     # Continue-pretraining ("seen data" transfer): warm-start the backbone from a prior run's
-    # weights before adapting on this corpus. Only SHAPE-MATCHING tensors transfer — the transformer
+    # weights before adapting on this corpus. Only SHAPE-MATCHING tensors transfer - the transformer
     # blocks and the vocab-free role encoder (GIN + projection) carry over, while vocab-sized tensors
     # (id embedding, output projections) reinitialize for THIS corpus's activity set. This runs
     # BEFORE set_role_graph so the new corpus's fingerprints/DFG install on the transferred encoder.

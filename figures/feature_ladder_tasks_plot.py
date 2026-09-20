@@ -63,7 +63,7 @@ for i, (task, ax) in enumerate(zip(TASKS, axes.ravel())):
     for k in sig:                                                          # interval clear of zero
         ax.plot(k, float(rs[k]["delta_mean"]), marker="*", ms=11, color="#d55e00",
                 mec="#111111", mew=0.6, zorder=5)
-    ax.set_title(f"({PANEL[i]}) {TITLE[task]} — {rs[0]['unit']}\n{worse}", fontsize=10)
+    ax.set_title(f"({PANEL[i]}) {TITLE[task]} - {rs[0]['unit']}\n{worse}", fontsize=10)
     ax.set_xticks([k for k in ks if k % 3 == 0] + [15])
     ax.set_xlim(-0.6, 15.6)
     if i >= 3:

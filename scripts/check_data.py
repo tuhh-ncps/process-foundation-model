@@ -38,7 +38,7 @@ LOGS = {
                   "held-out eval"),
     "helpdesk.csv": ("Helpdesk (CSV: case_id,activity,timestamp)", "helpdesk.csv",
                      "held-out eval"),
-    "mimic_transfers.csv": ("built from MIMIC-IV v3.1 — see scripts/build_mimic_log.py",
+    "mimic_transfers.csv": ("built from MIMIC-IV v3.1 - see scripts/build_mimic_log.py",
                             "mimic_transfers.csv", "held-out eval"),
     # Phase 1a selects its checkpoint on these; not needed for evaluation.
     "SepsisCases_Event_Log.xes": ("Sepsis Cases - Event Log", "Sepsis Cases - Event Log.xes",
@@ -68,7 +68,7 @@ def main() -> int:
     if missing:
         print("\nEvery file goes directly in data/raw/ under the name on the left. The repository "
               "never reads the original filenames.")
-        print("4TU datasets: https://data.4tu.nl/ — search the exact title shown above.")
+        print("4TU datasets: https://data.4tu.nl/ - search the exact title shown above.")
         if set(missing) <= {"mimic_transfers.csv", "SepsisCases_Event_Log.xes"}:
             print("\nOnly credentialed/optional logs are missing; the held-out evaluation on the "
                   "other four logs can still run.")

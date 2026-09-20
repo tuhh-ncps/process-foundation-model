@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 class Time2Vec(nn.Module):
-    """Time2Vec (Kazemi et al. 2019): a LEARNABLE time embedding — the trainable generalization
+    """Time2Vec (Kazemi et al. 2019): a LEARNABLE time embedding - the trainable generalization
     of fixed Fourier bands. For each source scalar τ it emits one linear term ``w0·τ + b0`` and
     ``k`` sinusoids ``sin(w_i·τ + b_i)`` with learnable frequencies ``w`` and phases ``b``
     (sin-with-phase subsumes cos). Output dim per source = ``k + 1``."""
@@ -47,8 +47,8 @@ class TimeEncoder(nn.Module):
     """Dedicated time encoder: an MLP over the normalized scalar time features -> d_model.
 
     V1/V2 use it plain. It optionally expands only the continuous monotonic columns
-    (``fourier_indices`` — z_log_delta, z_log_elapsed); cyclic (hour/dow) and binary features
-    are left untouched (already periodic/discrete — re-encoding them is feature laundering):
+    (``fourier_indices`` - z_log_delta, z_log_elapsed); cyclic (hour/dow) and binary features
+    are left untouched (already periodic/discrete - re-encoding them is feature laundering):
       - V3 (``fourier_bands``): fixed bands, appends ``sin(π·b·x), cos(π·b·x)``.
       - V4 (``time2vec_k``): learnable Time2Vec over those columns."""
 
@@ -134,7 +134,7 @@ class EventEmbedding(nn.Module):
         # Hybrid role channel (vocabulary-free): the ActivityEncoder maps the catalogue's
         # fingerprints/DFG/names to e(a); its table joins the input as ID (+) e(a_i) and is
         # the tied candidate bank of the AR matching head. Graph buffers are installed via
-        # set_graph (train-split-only corpus — see data/roles.py leakage contract).
+        # set_graph (train-split-only corpus - see data/roles.py leakage contract).
         self.has_role = role_dim > 0  # role table e(a) is produced by TraceBackbone.role_encoder
 
         # PAD id is 0 across activity and categorical vocabularies, so padding_idx=0
@@ -174,7 +174,7 @@ class EventEmbedding(nn.Module):
             concat_dim = activity_embedding_dim + n_time_features + attr_dim + role_dim
             self.fusion = nn.Linear(concat_dim, d_model)
         # Learned absolute positions (+1 for the CLS token). Skipped for RoPE, which encodes
-        # position inside attention instead — so RoPE has no position table and no length cap.
+        # position inside attention instead - so RoPE has no position table and no length cap.
         self.position_embedding = (
             nn.Embedding(max_seq_len + 1, d_model) if position == "learned" else None
         )
@@ -204,7 +204,7 @@ class EventEmbedding(nn.Module):
             role_emb = F.embedding(ids, role_table)  # reserved rows are zero
 
         # ID-channel dropout: during TRAINING, replace a fraction of REAL activity ids with UNK so
-        # the model must predict from the (vocabulary-free) role channel — making the role space
+        # the model must predict from the (vocabulary-free) role channel - making the role space
         # load-bearing and thus transferable to disjoint-vocab domains. role_emb was computed from
         # the ORIGINAL ids above, so dropped positions become exactly the cross-domain input
         # pattern (ID=UNK, role=real). No-op at eval, without a role channel, or when id_dropout=0.
