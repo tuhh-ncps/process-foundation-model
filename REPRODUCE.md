@@ -195,8 +195,10 @@ python hpc/bench/bench_feat_importance.py <log>      # fingerprint permutation i
 ### Baselines
 
 ```bash
-python scripts/export_splits.py      # exact split manifests
-python scripts/export_queries.py     # exact test prefixes, so every method scores the same queries
+# one call per log; --max-traces mirrors the eval config (MIMIC: 5000)
+python scripts/export_splits.py  --log helpdesk --path data/raw/helpdesk.csv --out exports/helpdesk_splits.csv
+python scripts/export_queries.py --log helpdesk --path data/raw/helpdesk.csv --max-trace-len 64 \
+    --splits-csv exports/helpdesk_splits.csv --out exports/helpdesk_queries.csv
 python hpc/submit/submit_sutran.py   # SuTraN, non-data-aware, equal-weighted, CaLenDiR
 python hpc/submit/submit_fmv2.py     # FM-v2, released 4-expert checkpoint, k chosen on validation
 ```
@@ -209,9 +211,13 @@ comparison fair.
 Collectors walk `outputs/label_efficiency/*/manifest.json`, keep only runs matching the protocol, and
 emit one tidy CSV:
 
+These **overwrite the committed CSVs**, so run them only once `outputs/` holds your own runs.
+Collect to a temporary file and move it into place, so a run that collects nothing cannot truncate
+the shipped results (the collectors exit non-zero and print nothing when they match no run):
+
 ```bash
-python hpc/collect/collect_v2.py      > results/v2_all.csv
-python hpc/collect/collect_linhead.py > results/linhead_all.csv
+python hpc/collect/collect_v2.py      > /tmp/v2_all.csv      && mv /tmp/v2_all.csv      results/v2_all.csv
+python hpc/collect/collect_linhead.py > /tmp/linhead_all.csv && mv /tmp/linhead_all.csv results/linhead_all.csv
 ```
 
 Columns: `log, arm, task, n_labels, n_train_samples, seed, value, run`. One row per
@@ -238,7 +244,7 @@ python figures/frozen_agg_merged.py --seed2   # same panels from the seed-2 back
 python figures/sota_agg_plot.py           # writes results/sota_agg_data.csv, then
 python figures/sota_wall_plot.py          # Figure 4, baselines + adaptation cost
 python figures/make_table_ablation_v2.py  # Table 6 and the seed-replication table
-python figures/make_datasets_table.py     # Table 2
+python figures/make_datasets_table.py     # Table 2 (needs results/log_stats.csv)
 python figures/feats_importance_plot.py   # fingerprint non-redundancy
 ```
 
@@ -262,7 +268,7 @@ TikZ sources under `docs/`, which is not published.
 
 | Paper element | Produced by |
 |---|---|
-| Table 2, dataset statistics | `scripts/log_stats.py` → `make_datasets_table.py` |
+| Table 2, dataset statistics | `scripts/log_stats.py` (needs `data/raw/`) → `make_datasets_table.py` |
 | Table 5, full-budget results | `submit_v2.py main` → `collect_v2.py` |
 | Table 6, component ablation | `submit_v2.py ablation` → `make_table_ablation_v2.py` |
 | Figure 3, label efficiency | `submit_v2.py main` → `frozen_agg_merged.py` |

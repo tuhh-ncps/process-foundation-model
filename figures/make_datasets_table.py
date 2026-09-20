@@ -83,7 +83,7 @@ for label, block in ((r"\shortstack{Pre-training\\corpus}", pre),
             format(int(r["variants_fileorder"]), ","), num(r["mean_gap"]), num(r["mean_dur"])))
 L += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
 
-out = os.path.join(ROOT, "docs", "datasets_table.tex")
+out = os.path.join(HERE, "datasets_table.tex")   # beside the other generated tables (docs/ is not in the repo)
 open(out, "w").write("\n".join(L) + "\n")
 print("\n".join(L))
 print("\nwrote", out)

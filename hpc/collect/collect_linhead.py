@@ -27,6 +27,8 @@ for d in sorted(glob.glob("outputs/label_efficiency/*/")):
         key = (lg, r["backbone_alias"], r["task"], r["n_labels"], r["seed"])
         rows[key] = (m["completed_at"], [lg, r["backbone_alias"], r["task"], r["n_labels"],
                                          r.get("n_train_samples", ""), r["seed"], r["value"], m["completed_at"]])
+if not rows:   # refuse to print a header-only CSV: redirecting it would truncate the committed results
+    sys.exit("no matching linear-head runs under outputs/label_efficiency/; nothing collected")
 w = csv.writer(sys.stdout)
 w.writerow(["log", "arm", "task", "n_labels", "n_train_samples", "seed", "value", "run"])
 for k in sorted(rows):
