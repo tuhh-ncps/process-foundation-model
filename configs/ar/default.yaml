@@ -4,8 +4,10 @@ time_head_hidden: 0        # pretext next-Δt head: 0 = Linear (independent of t
 # --- auxiliary pretext heads on the backbone (multi-task pretraining) ---
 remaining_time_weight: 0.3 # >0 enables a per-event remaining-time pretext head (masked MAE)
 remaining_head_hidden: 0   # 0 = linear (like the next-Δt and outcome pretext heads)
-outcome_weight: 0.3        # >0 enables a trace-level outcome pretext head (CE on the labeler's
-                           #   stripped prefixes - leak-free; disabled if the log has no labels)
+outcome_weight: 0.0        # >0 enables a trace-level outcome pretext head (CE on the labeler's
+                           #   stripped prefixes - leak-free; disabled if the log has no labels).
+                           #   0 = the four objectives of the paper: next activity, next dt,
+                           #   remaining time, future latent.
 outcome_labeler: bpi12_application_outcome
 outcome_head_hidden: 0     # 0 = linear
 # --- JEPA pretext (joint with AR): DENSE multi-horizon latent prediction against an EMA
